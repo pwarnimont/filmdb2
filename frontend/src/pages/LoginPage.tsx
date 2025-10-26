@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import axios from 'axios';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {Box, Button, Link, Paper, Stack, TextField, Typography} from '@mui/material';
 import {useForm} from 'react-hook-form';
@@ -38,7 +39,24 @@ function LoginPage() {
       const redirectTo = (location.state as {from?: Location})?.from?.pathname ?? '/film-rolls';
       navigate(redirectTo, {replace: true});
     } catch (error) {
-      snackbar.showMessage('Login failed. Check your credentials.', 'error');
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const serverMessage =
+          typeof error.response?.data?.message === 'string' ? error.response?.data?.message : null;
+
+        if (status === 429) {
+          snackbar.showMessage(
+            serverMessage ?? 'Too many login attempts. Please wait a few minutes before trying again.',
+            'warning'
+          );
+        } else if (status === 403) {
+          snackbar.showMessage(serverMessage ?? 'This account is currently disabled.', 'error');
+        } else {
+          snackbar.showMessage(serverMessage ?? 'Login failed. Check your credentials.', 'error');
+        }
+      } else {
+        snackbar.showMessage('Login failed. Check your credentials.', 'error');
+      }
     }
   });
 
@@ -49,7 +67,7 @@ function LoginPage() {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: 'radial-gradient(circle at top, #f1f6ff 0%, #e4ecfd 45%, #f9f9ff 100%)',
+        background: 'radial-gradient(circle at top, #eef8f1 0%, #d9eddf 45%, #f6fbf7 100%)',
         px: 2
       }}
     >
@@ -59,8 +77,8 @@ function LoginPage() {
           p: {xs: 3, sm: 4},
           minWidth: {xs: '100%', sm: 360},
           borderRadius: 3,
-          boxShadow: '0 24px 44px rgba(18, 46, 76, 0.12)',
-          background: 'linear-gradient(160deg, rgba(255,255,255,0.97) 0%, rgba(237, 244, 254, 0.95) 100%)'
+          boxShadow: '0 24px 44px rgba(26, 74, 45, 0.12)',
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.97) 0%, rgba(223, 241, 229, 0.95) 100%)'
         }}
       >
         <Stack spacing={3} component="form" onSubmit={onSubmit}>

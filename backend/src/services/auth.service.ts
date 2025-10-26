@@ -4,6 +4,9 @@ import type {UserRolePayload} from '../types/user';
 import {prisma} from '../config/prisma';
 import {hashPassword, verifyPassword} from '../utils/password';
 
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MINUTES = 15;
+
 class AuthService {
   async register(email: string, password: string, firstName: string, lastName: string): Promise<UserRolePayload> {
     const normalizedEmail = email.toLowerCase().trim();
@@ -42,13 +45,44 @@ class AuthService {
       throw createHttpError(401, 'Invalid credentials');
     }
 
+    if (user.lockoutUntil && user.lockoutUntil.getTime() > Date.now()) {
+      throw createHttpError(429, 'Too many login attempts. Please try again later.');
+    }
+
     if (!user.isActive) {
       throw createHttpError(403, 'Account is disabled');
     }
 
     const isValid = await verifyPassword(password, user.passwordHash);
     if (!isValid) {
+      const attempts = user.failedLoginAttempts + 1;
+      if (attempts >= MAX_FAILED_ATTEMPTS) {
+        await prisma.user.update({
+          where: {id: user.id},
+          data: {
+            failedLoginAttempts: 0,
+            lockoutUntil: new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000)
+          }
+        });
+        throw createHttpError(429, 'Too many login attempts. Please try again later.');
+      }
+
+      await prisma.user.update({
+        where: {id: user.id},
+        data: {failedLoginAttempts: attempts}
+      });
+
       throw createHttpError(401, 'Invalid credentials');
+    }
+
+    if (user.failedLoginAttempts > 0 || user.lockoutUntil) {
+      await prisma.user.update({
+        where: {id: user.id},
+        data: {
+          failedLoginAttempts: 0,
+          lockoutUntil: null
+        }
+      });
     }
 
     return {
