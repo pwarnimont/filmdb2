@@ -12,6 +12,7 @@ COPY prisma ./prisma
 COPY scripts ./scripts
 COPY src ./src
 
+RUN chmod +x scripts/*.sh
 RUN npm run prisma:generate
 RUN npm run build
 

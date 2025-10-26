@@ -27,7 +27,7 @@ services:
     ports:
       - '4000:4000'
     command: >-
-      sh -c "npm run migrate && npm run seed && npm run start"
+      sh -c "./scripts/wait-for-db.sh && npm run migrate && npm run seed && npm run start"
 
   web:
     build:
