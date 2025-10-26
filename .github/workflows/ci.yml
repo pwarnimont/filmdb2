@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: filmdb
+          POSTGRES_USER: film_user
+          POSTGRES_PASSWORD: film_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -d filmdb -U film_user" --health-interval 10s --health-timeout 5s --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://film_user:film_password@localhost:5432/filmdb
+      JWT_SECRET: testsecret
+      JWT_REFRESH_SECRET: testrefresh
+      DEFAULT_ALLOW_REGISTRATION: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npm run prisma:generate
+
+      - name: Lint backend
+        working-directory: backend
+        run: npm run lint
+
+      - name: Test backend
+        working-directory: backend
+        run: npm run test -- --runInBand
+
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Frontend unit tests
+        working-directory: frontend
+        run: npm run test -- --run --passWithNoTests

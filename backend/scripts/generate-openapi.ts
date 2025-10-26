@@ -1,0 +1,421 @@
+import {writeFileSync} from 'fs';
+import {join} from 'path';
+
+const openapi = {
+  openapi: '3.0.1',
+  info: {
+    title: 'FilmDB API',
+    version: '1.0.0',
+    description: 'API documentation for the FilmDB analogue film management platform.'
+  },
+  servers: [{url: 'http://localhost:4000/api'}],
+  components: {
+    securitySchemes: {
+      cookieAuth: {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'accessToken'
+      }
+    },
+    schemas: {
+      FilmRoll: {
+        type: 'object',
+        properties: {
+          id: {type: 'string', format: 'uuid'},
+          filmId: {type: 'string'},
+          filmName: {type: 'string'},
+          boxIso: {type: 'integer'},
+          shotIso: {type: 'integer', nullable: true},
+          dateShot: {type: 'string', format: 'date-time', nullable: true},
+          cameraName: {type: 'string', nullable: true},
+          filmFormat: {
+            type: 'string',
+            enum: ['35mm', '6x6', '6x4_5', '6x7', '6x9', 'other']
+          },
+          exposures: {type: 'integer'},
+          isDeveloped: {type: 'boolean'},
+          createdAt: {type: 'string', format: 'date-time'},
+          updatedAt: {type: 'string', format: 'date-time'},
+          userId: {type: 'string', format: 'uuid'},
+          development: {$ref: '#/components/schemas/Development', nullable: true}
+        }
+      },
+      Development: {
+        type: 'object',
+        properties: {
+          id: {type: 'string', format: 'uuid'},
+          filmRollId: {type: 'string', format: 'uuid'},
+          developer: {type: 'string'},
+          temperatureC: {type: 'number'},
+          dilution: {type: 'string'},
+          timeSeconds: {type: 'integer'},
+          dateDeveloped: {type: 'string', format: 'date-time'},
+          agitationScheme: {type: 'string'}
+        }
+      },
+      AuthUser: {
+        type: 'object',
+        properties: {
+          id: {type: 'string', format: 'uuid'},
+          email: {type: 'string', format: 'email'},
+          role: {type: 'string', enum: ['USER', 'ADMIN']},
+          isActive: {type: 'boolean'}
+        }
+      },
+      AdminUser: {
+        type: 'object',
+        properties: {
+          id: {type: 'string', format: 'uuid'},
+          email: {type: 'string', format: 'email'},
+          role: {type: 'string', enum: ['USER', 'ADMIN']},
+          isActive: {type: 'boolean'},
+          createdAt: {type: 'string', format: 'date-time'},
+          updatedAt: {type: 'string', format: 'date-time'}
+        }
+      }
+    }
+  },
+  paths: {
+    '/auth/config': {
+      get: {
+        summary: 'Get auth config',
+        responses: {
+          '200': {
+            description: 'Config retrieved',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    allowRegistration: {type: 'boolean'}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/auth/register': {
+      post: {
+        summary: 'Register new user',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  email: {type: 'string', format: 'email'},
+                  password: {type: 'string', format: 'password'}
+                },
+                required: ['email', 'password']
+              }
+            }
+          }
+        },
+        responses: {
+          '201': {
+            description: 'User registered',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    user: {$ref: '#/components/schemas/AuthUser'},
+                    tokens: {
+                      type: 'object',
+                      properties: {
+                        accessToken: {type: 'string'}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '403': {description: 'Registration disabled'}
+        }
+      }
+    },
+    '/auth/login': {
+      post: {
+        summary: 'Authenticate user',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  email: {type: 'string', format: 'email'},
+                  password: {type: 'string', format: 'password'}
+                },
+                required: ['email', 'password']
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Logged in'
+          },
+          '401': {description: 'Invalid credentials'}
+        }
+      }
+    },
+    '/auth/logout': {
+      post: {
+        summary: 'Logout',
+        security: [{cookieAuth: []}],
+        responses: {
+          '204': {description: 'Logged out'}
+        }
+      }
+    },
+    '/auth/refresh': {
+      post: {
+        summary: 'Refresh access token',
+        responses: {
+          '200': {description: 'Token refreshed'}
+        }
+      }
+    },
+    '/auth/me': {
+      get: {
+        summary: 'Get current user',
+        security: [{cookieAuth: []}],
+        responses: {
+          '200': {
+            description: 'Current user',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    user: {$ref: '#/components/schemas/AuthUser'}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/film-rolls': {
+      get: {
+        summary: 'List film rolls',
+        security: [{cookieAuth: []}],
+        parameters: [
+          {name: 'search', in: 'query', schema: {type: 'string'}},
+          {name: 'isDeveloped', in: 'query', schema: {type: 'boolean'}},
+          {name: 'page', in: 'query', schema: {type: 'integer'}},
+          {name: 'pageSize', in: 'query', schema: {type: 'integer'}}
+        ],
+        responses: {
+          '200': {
+            description: 'List of film rolls'
+          }
+        }
+      },
+      post: {
+        summary: 'Create film roll',
+        security: [{cookieAuth: []}],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {$ref: '#/components/schemas/FilmRoll'}
+            }
+          }
+        },
+        responses: {'201': {description: 'Film roll created'}}
+      }
+    },
+    '/film-rolls/{id}': {
+      get: {
+        summary: 'Get film roll',
+        security: [{cookieAuth: []}],
+        parameters: [{name: 'id', in: 'path', required: true, schema: {type: 'string'}}],
+        responses: {'200': {description: 'Film roll detail'}}
+      },
+      put: {
+        summary: 'Update film roll',
+        security: [{cookieAuth: []}],
+        parameters: [{name: 'id', in: 'path', required: true, schema: {type: 'string'}}],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {$ref: '#/components/schemas/FilmRoll'}
+            }
+          }
+        },
+        responses: {'200': {description: 'Film roll updated'}}
+      },
+      delete: {
+        summary: 'Delete film roll',
+        security: [{cookieAuth: []}],
+        parameters: [{name: 'id', in: 'path', required: true, schema: {type: 'string'}}],
+        responses: {'204': {description: 'Film roll deleted'}}
+      }
+    },
+    '/film-rolls/{id}/development': {
+      post: {
+        summary: 'Create or update development',
+        security: [{cookieAuth: []}],
+        parameters: [{name: 'id', in: 'path', required: true, schema: {type: 'string'}}],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {$ref: '#/components/schemas/Development'}
+            }
+          }
+        },
+        responses: {'200': {description: 'Development upserted'}}
+      },
+      delete: {
+        summary: 'Delete development',
+        security: [{cookieAuth: []}],
+        parameters: [{name: 'id', in: 'path', required: true, schema: {type: 'string'}}],
+        responses: {'200': {description: 'Development deleted'}}
+      }
+    },
+    '/film-rolls/{id}/mark-developed': {
+      post: {
+        summary: 'Mark as developed',
+        security: [{cookieAuth: []}],
+        parameters: [{name: 'id', in: 'path', required: true, schema: {type: 'string'}}],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  development: {$ref: '#/components/schemas/Development'}
+                }
+              }
+            }
+          }
+        },
+        responses: {'200': {description: 'Marked developed'}}
+      }
+    },
+    '/admin/settings/registration': {
+      get: {
+        summary: 'Get registration setting',
+        security: [{cookieAuth: []}],
+        responses: {'200': {description: 'Setting retrieved'}}
+      },
+      put: {
+        summary: 'Update registration setting',
+        security: [{cookieAuth: []}],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {allowRegistration: {type: 'boolean'}},
+                required: ['allowRegistration']
+              }
+            }
+          }
+        },
+        responses: {'200': {description: 'Setting updated'}}
+      }
+    },
+    '/admin/users': {
+      get: {
+        summary: 'List users',
+        security: [{cookieAuth: []}],
+        responses: {
+          '200': {
+            description: 'Users retrieved',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    users: {
+                      type: 'array',
+                      items: {$ref: '#/components/schemas/AdminUser'}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/admin/users/{id}': {
+      put: {
+        summary: 'Update user role or status',
+        security: [{cookieAuth: []}],
+        parameters: [{name: 'id', in: 'path', required: true, schema: {type: 'string'}}],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  role: {type: 'string', enum: ['USER', 'ADMIN']},
+                  isActive: {type: 'boolean'}
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'User updated',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    user: {$ref: '#/components/schemas/AdminUser'}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/admin/users/{id}/password': {
+      put: {
+        summary: 'Reset user password',
+        security: [{cookieAuth: []}],
+        parameters: [{name: 'id', in: 'path', required: true, schema: {type: 'string'}}],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  password: {type: 'string', format: 'password'}
+                },
+                required: ['password']
+              }
+            }
+          }
+        },
+        responses: {
+          '204': {
+            description: 'Password updated'
+          }
+        }
+      }
+    }
+  }
+};
+
+const outputPath = join(__dirname, '..', 'openapi.json');
+writeFileSync(outputPath, JSON.stringify(openapi, null, 2));
+console.log(`OpenAPI spec written to ${outputPath}`);
