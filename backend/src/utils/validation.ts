@@ -1,7 +1,7 @@
 import createHttpError from 'http-errors';
-import {ZodError, type ZodSchema} from 'zod';
+import {ZodError, type ZodTypeAny, type infer as ZodInfer} from 'zod';
 
-export function parseWithSchema<T>(schema: ZodSchema<T>, data: unknown): T {
+export function parseWithSchema<S extends ZodTypeAny>(schema: S, data: unknown): ZodInfer<S> {
   try {
     return schema.parse(data);
   } catch (error) {

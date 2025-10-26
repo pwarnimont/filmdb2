@@ -67,6 +67,8 @@ class AdminUserService {
       throw createHttpError(409, 'A user with this email already exists');
     }
 
+    const role = data.role ?? 'USER';
+    const isActive = data.isActive ?? true;
     const passwordHash = await hashPassword(data.password);
     const firstName = data.firstName.trim();
     const lastName = data.lastName.trim();
@@ -77,8 +79,8 @@ class AdminUserService {
         passwordHash,
         firstName,
         lastName,
-        role: data.role,
-        isActive: data.isActive
+        role,
+        isActive
       }
     });
 
