@@ -21,7 +21,7 @@ const baseTheme = createTheme({
     }
   },
   shape: {
-    borderRadius: 12
+    borderRadius: 2
   },
   typography: {
     fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
@@ -47,14 +47,14 @@ const baseTheme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 999
+          borderRadius: 3
         }
       }
     },
     MuiPaper: {
       styleOverrides: {
         rounded: {
-          borderRadius: 16
+          borderRadius: 3
         }
       }
     },
@@ -66,14 +66,14 @@ const baseTheme = createTheme({
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          borderRadius: 12
+          borderRadius: 2
         }
       }
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 18,
+          borderRadius: 4,
           boxShadow: '0 18px 36px rgba(18, 46, 76, 0.08)'
         }
       }
@@ -81,7 +81,7 @@ const baseTheme = createTheme({
     MuiDialog: {
       styleOverrides: {
         paper: {
-          borderRadius: 20,
+          borderRadius: 5,
           boxShadow: '0 24px 48px rgba(13, 41, 74, 0.16)'
         }
       }
@@ -89,7 +89,7 @@ const baseTheme = createTheme({
     MuiDataGrid: {
       styleOverrides: {
         root: {
-          borderRadius: 18,
+          borderRadius: 3,
           border: 'none'
         }
       }
