@@ -48,7 +48,16 @@ export function AppLayout() {
           </Stack>
         </Toolbar>
       </AppBar>
-      <Container maxWidth="lg" sx={{py: 4, flexGrow: 1}}>
+      <Container
+        maxWidth={false}
+        sx={{
+          py: {xs: 3, sm: 4},
+          px: {xs: 2, sm: 3, md: 5},
+          flexGrow: 1,
+          width: '100%',
+          boxSizing: 'border-box'
+        }}
+      >
         <Outlet />
       </Container>
     </Box>

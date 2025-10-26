@@ -1,15 +1,21 @@
 import {useMemo, useState} from 'react';
+import type {ReactNode} from 'react';
 import {
   Box,
   Button,
+  Divider,
   Dialog,
   DialogContent,
   DialogTitle,
+  Drawer,
   IconButton,
+  Paper,
+  Skeleton,
   Stack,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography
 } from '@mui/material';
 import {DataGrid, GridColDef, GridPaginationModel, GridSortModel} from '@mui/x-data-grid';
@@ -17,6 +23,7 @@ import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
 import CheckIcon from '@mui/icons-material/CheckCircleOutline';
+import CloseIcon from '@mui/icons-material/Close';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useNavigate} from 'react-router-dom';
 
@@ -42,6 +49,7 @@ function FilmRollListPage() {
   ]);
   const [selectedForDelete, setSelectedForDelete] = useState<FilmRoll | null>(null);
   const [selectedForDevelop, setSelectedForDevelop] = useState<FilmRoll | null>(null);
+  const [selectedForDetails, setSelectedForDetails] = useState<FilmRoll | null>(null);
   const snackbar = useSnackbar();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -96,6 +104,29 @@ function FilmRollListPage() {
       snackbar.showMessage('Film roll marked as developed', 'success');
     },
     onError: () => snackbar.showMessage('Failed to mark as developed', 'error')
+  });
+
+  const {data: stats, isLoading: statsLoading} = useQuery({
+    queryKey: ['film-rolls', 'stats'],
+    queryFn: async () => {
+      const [all, developed, undeveloped] = await Promise.all([
+        listFilmRolls({page: 1, pageSize: 1}),
+        listFilmRolls({page: 1, pageSize: 1, isDeveloped: true}),
+        listFilmRolls({page: 1, pageSize: 1, isDeveloped: false})
+      ]);
+
+      const total = all.total;
+      const developedCount = developed.total;
+      const undevelopedCount = undeveloped.total;
+      const percentage = total > 0 ? Math.round((developedCount / total) * 100) : 0;
+
+      return {
+        total,
+        developed: developedCount,
+        undeveloped: undevelopedCount,
+        developedPercentage: percentage
+      };
+    }
   });
 
   const columns = useMemo<GridColDef<FilmRoll>[]>(
@@ -159,20 +190,47 @@ function FilmRollListPage() {
         width: 180,
         renderCell: ({row}) => (
           <Stack direction="row" spacing={1}>
-            <IconButton aria-label="View" onClick={() => navigate(`/film-rolls/${row.id}`)}>
+            <IconButton
+              aria-label="View"
+              onClick={(event) => {
+                event.stopPropagation();
+                navigate(`/film-rolls/${row.id}`);
+              }}
+            >
               <VisibilityIcon fontSize="small" />
             </IconButton>
-            <IconButton aria-label="Edit" onClick={() => navigate(`/film-rolls/${row.id}/edit`)}>
+            <IconButton
+              aria-label="Edit"
+              onClick={(event) => {
+                event.stopPropagation();
+                navigate(`/film-rolls/${row.id}/edit`);
+              }}
+            >
               <EditIcon fontSize="small" />
             </IconButton>
+            <Tooltip title={row.isDeveloped ? 'Already developed' : 'Mark as developed'}>
+              <span>
+                <IconButton
+                  aria-label="Mark developed"
+                  color={row.isDeveloped ? 'success' : 'primary'}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedForDevelop(row);
+                  }}
+                  disabled={row.isDeveloped}
+                >
+                  <CheckIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
             <IconButton
-              aria-label="Mark developed"
-              color={row.isDeveloped ? 'success' : 'primary'}
-              onClick={() => setSelectedForDevelop(row)}
+              color="error"
+              aria-label="Delete"
+              onClick={(event) => {
+                event.stopPropagation();
+                setSelectedForDelete(row);
+              }}
             >
-              <CheckIcon fontSize="small" />
-            </IconButton>
-            <IconButton color="error" aria-label="Delete" onClick={() => setSelectedForDelete(row)}>
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Stack>
@@ -192,6 +250,7 @@ function FilmRollListPage() {
           Add Film Roll
         </Button>
       </Stack>
+      <StatisticsStrip stats={stats} loading={statsLoading} />
       <Stack direction={{xs: 'column', md: 'row'}} spacing={2} alignItems={{md: 'center'}}>
         <TextField
           label="Search"
@@ -228,6 +287,7 @@ function FilmRollListPage() {
           onSortModelChange={(model) => setSortModel(model.length ? model : [{field: 'dateShot', sort: 'desc'}])}
           columns={columns}
           getRowId={(row) => row.id}
+          onRowClick={({row}) => setSelectedForDetails(row)}
         />
       </Box>
 
@@ -246,10 +306,14 @@ function FilmRollListPage() {
       />
 
       <Dialog open={!!selectedForDevelop} onClose={() => setSelectedForDevelop(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Mark as Developed</DialogTitle>
+        <DialogTitle>
+          {selectedForDevelop?.isDeveloped ? 'Update Development' : 'Mark as Developed'}
+        </DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{mb: 2}}>
-            Provide development details to archive this roll.
+            {selectedForDevelop?.isDeveloped
+              ? 'Update the development log for this roll.'
+              : 'Provide development details to archive this roll.'}
           </Typography>
           {selectedForDevelop && (
             <DevelopmentForm
@@ -263,13 +327,231 @@ function FilmRollListPage() {
                   development: {development: payload}
                 });
               }}
-              submitLabel="Mark Developed"
+              submitLabel={selectedForDevelop.isDeveloped ? 'Save Development' : 'Mark Developed'}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      <Drawer
+        anchor="right"
+        open={!!selectedForDetails}
+        onClose={() => setSelectedForDetails(null)}
+        PaperProps={{
+          sx: {
+            width: {xs: '100%', sm: 420, md: 480},
+            maxWidth: '100%',
+            p: 0
+          }
+        }}
+      >
+        {selectedForDetails && (
+          <FilmRollDetailsPanel
+            film={selectedForDetails}
+            onClose={() => setSelectedForDetails(null)}
+            onEdit={() => {
+              setSelectedForDetails(null);
+              navigate(`/film-rolls/${selectedForDetails.id}/edit`);
+            }}
+            onOpen={() => {
+              setSelectedForDetails(null);
+              navigate(`/film-rolls/${selectedForDetails.id}`);
+            }}
+            onOpenDevelopmentDialog={() => {
+              setSelectedForDetails(null);
+              setSelectedForDevelop(selectedForDetails);
+            }}
+          />
+        )}
+      </Drawer>
     </Stack>
   );
 }
 
 export default FilmRollListPage;
+
+function formatDate(value: string | null) {
+  return value ? new Date(value).toLocaleDateString() : '—';
+}
+
+function formatTime(value: number) {
+  const mins = Math.floor(value / 60)
+    .toString()
+    .padStart(2, '0');
+  const secs = Math.floor(value % 60)
+    .toString()
+    .padStart(2, '0');
+  return `${mins}:${secs}`;
+}
+
+function FilmRollDetailsPanel({
+  film,
+  onClose,
+  onOpen,
+  onEdit,
+  onOpenDevelopmentDialog
+}: {
+  film: FilmRoll;
+  onClose: () => void;
+  onOpen: () => void;
+  onEdit: () => void;
+  onOpenDevelopmentDialog: () => void;
+}) {
+  const brand = detectFilmBrand(film.filmName);
+  const developedLabel = film.isDeveloped ? 'Update Development' : 'Mark as Developed';
+
+  return (
+    <Box sx={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+      <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, py: 2}}>
+        <Typography variant="h6">{film.filmName}</Typography>
+        <IconButton onClick={onClose} aria-label="Close details panel">
+          <CloseIcon />
+        </IconButton>
+      </Box>
+      <Divider />
+      <Box sx={{px: 3, py: 2, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto'}}>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <FilmBrandLogo brand={brand} size={48} showLabel />
+          <Stack spacing={0.5}>
+            <Typography variant="body2" color="text.secondary">
+              Film ID
+            </Typography>
+            <Typography variant="subtitle1">{film.filmId}</Typography>
+          </Stack>
+        </Stack>
+
+        <InfoSection>
+          <InfoRow label="Format" value={film.filmFormat} />
+          <InfoRow label="Exposures" value={String(film.exposures)} />
+          <InfoRow label="Box ISO" value={String(film.boxIso)} />
+          <InfoRow label="Shot ISO" value={film.shotIso ? String(film.shotIso) : '—'} />
+        </InfoSection>
+
+        <InfoSection>
+          <InfoRow label="Date Shot" value={formatDate(film.dateShot)} />
+          <InfoRow label="Camera" value={film.cameraName ?? '—'} />
+          <InfoRow label="Developed" value={film.isDeveloped ? 'Yes' : 'No'} />
+          <InfoRow label="Created" value={formatDate(film.createdAt)} />
+          <InfoRow label="Updated" value={formatDate(film.updatedAt)} />
+        </InfoSection>
+
+        {film.development ? (
+          <InfoSection title="Development">
+            <InfoRow label="Developer" value={film.development.developer} />
+            <InfoRow label="Temperature" value={`${film.development.temperatureC.toFixed(1)} °C`} />
+            <InfoRow label="Dilution" value={film.development.dilution} />
+            <InfoRow label="Time" value={formatTime(film.development.timeSeconds)} />
+            <InfoRow label="Date Developed" value={formatDate(film.development.dateDeveloped)} />
+            <InfoRow label="Agitation" value={film.development.agitationScheme} />
+          </InfoSection>
+        ) : (
+          <Box sx={{p: 2, borderRadius: 1, bgcolor: 'warning.light', color: 'warning.contrastText'}}>
+            <Typography variant="body2">This roll has not been developed yet.</Typography>
+          </Box>
+        )}
+      </Box>
+      <Divider />
+      <Stack spacing={1} sx={{p: 3}}>
+        <Button variant="contained" onClick={onOpen}>
+          View Full Details
+        </Button>
+        <Button variant="outlined" onClick={onEdit}>
+          Edit Roll
+        </Button>
+        <Button variant="outlined" color={film.isDeveloped ? 'success' : 'primary'} onClick={onOpenDevelopmentDialog}>
+          {developedLabel}
+        </Button>
+      </Stack>
+    </Box>
+  );
+}
+
+function InfoSection({children, title}: {children: ReactNode; title?: string}) {
+  return (
+    <Stack spacing={1.5}>
+      {title && (
+        <Typography variant="subtitle2" color="text.secondary">
+          {title}
+        </Typography>
+      )}
+      <Stack spacing={1}>{children}</Stack>
+    </Stack>
+  );
+}
+
+function StatisticsStrip({
+  stats,
+  loading
+}: {
+  stats:
+    | {
+        total: number;
+        developed: number;
+        undeveloped: number;
+        developedPercentage: number;
+      }
+    | undefined;
+  loading: boolean;
+}) {
+  const cards: Array<{label: string; value: string | number; helper?: string}> = [
+    {
+      label: 'Total Rolls',
+      value: stats?.total ?? '—'
+    },
+    {
+      label: 'Developed',
+      value: stats?.developed ?? '—',
+      helper: stats ? `${stats.developedPercentage}% of collection` : undefined
+    },
+    {
+      label: 'Undeveloped',
+      value: stats?.undeveloped ?? '—'
+    }
+  ];
+
+  return (
+    <Stack direction={{xs: 'column', md: 'row'}} spacing={2}>
+      {cards.map((card) => (
+        <Paper
+          key={card.label}
+          elevation={0}
+          sx={{
+            flex: {md: 1},
+            px: {xs: 2.5, md: 3},
+            py: {xs: 2, md: 2.5},
+            borderRadius: 2,
+            border: (theme) => `1px solid ${theme.palette.divider}`,
+            background: (theme) => theme.palette.background.paper
+          }}
+        >
+          {loading ? (
+            <Skeleton variant="rectangular" height={64} />
+          ) : (
+            <Stack spacing={0.5}>
+              <Typography variant="overline" color="text.secondary">
+                {card.label}
+              </Typography>
+              <Typography variant="h5">{card.value}</Typography>
+              {card.helper && (
+                <Typography variant="caption" color="text.secondary">
+                  {card.helper}
+                </Typography>
+              )}
+            </Stack>
+          )}
+        </Paper>
+      ))}
+    </Stack>
+  );
+}
+
+function InfoRow({label, value}: {label: string; value: string}) {
+  return (
+    <Box>
+      <Typography variant="caption" color="text.secondary">
+        {label}
+      </Typography>
+      <Typography variant="body1">{value}</Typography>
+    </Box>
+  );
+}

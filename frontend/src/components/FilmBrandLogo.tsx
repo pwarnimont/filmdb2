@@ -54,29 +54,39 @@ const BRAND_VISUALS: Record<FilmBrand, BrandVisual> = {
 
 export function FilmBrandLogo({brand, size = 36, showLabel = false}: FilmBrandLogoProps) {
   const visual = BRAND_VISUALS[brand];
+  const paddingX = Math.max(size * 0.3, 8);
+  const paddingY = Math.max(size * 0.15, 4);
+  const fontSize = Math.max(size * 0.32, 12);
+  const minWidth = Math.max(size * 1.6, fontSize * visual.label.length * 0.7 + paddingX * 2);
 
   return (
     <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
       <Box
         sx={{
-          width: size,
+          minWidth: `${minWidth}px`,
           height: size,
           borderRadius: 0,
           backgroundColor: visual.background,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          border: '2px solid #0f1115'
+          border: '2px solid #0f1115',
+          px: `${paddingX}px`,
+          py: `${paddingY}px`,
+          boxSizing: 'border-box'
         }}
       >
         <Typography
           variant="subtitle2"
           sx={{
             fontWeight: 700,
-            fontSize: size <= 36 ? '0.72rem' : '0.82rem',
+            fontSize: `${fontSize}px`,
             letterSpacing: 0.5,
             color: visual.foreground,
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
+            lineHeight: 1,
+            textAlign: 'center',
+            whiteSpace: 'nowrap'
           }}
         >
           {visual.label}
