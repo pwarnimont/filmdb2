@@ -241,7 +241,7 @@ function FilmRollListPage() {
   );
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={3} sx={{color: 'text.primary'}}>
       <Stack direction={{xs: 'column', md: 'row'}} spacing={2} alignItems={{md: 'center'}}>
         <Typography variant="h4" sx={{flexGrow: 1}}>
           Film Rolls
@@ -271,7 +271,16 @@ function FilmRollListPage() {
           <ToggleButton value="undeveloped">Undeveloped</ToggleButton>
         </ToggleButtonGroup>
       </Stack>
-      <Box sx={{width: '100%', bgcolor: 'background.paper'}}>
+      <Box
+        sx={{
+          width: '100%',
+          bgcolor: 'rgba(255,255,255,0.85)',
+          borderRadius: {xs: 2, md: 2.5},
+          boxShadow: '0 18px 36px rgba(18, 46, 76, 0.08)',
+          backdropFilter: 'blur(4px)',
+          p: {xs: 1.5, md: 2}
+        }}
+      >
         <DataGrid
           autoHeight
           disableRowSelectionOnClick
@@ -288,6 +297,16 @@ function FilmRollListPage() {
           columns={columns}
           getRowId={(row) => row.id}
           onRowClick={({row}) => setSelectedForDetails(row)}
+          sx={{
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: 'rgba(29,53,87,0.08)',
+              fontWeight: 600
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: 'rgba(58,110,165,0.08)'
+            },
+            backgroundColor: 'transparent'
+          }}
         />
       </Box>
 
@@ -493,19 +512,25 @@ function StatisticsStrip({
     | undefined;
   loading: boolean;
 }) {
-  const cards: Array<{label: string; value: string | number; helper?: string}> = [
+  const cards: Array<{label: string; value: string | number; helper?: string; accent: string; text: string}> = [
     {
       label: 'Total Rolls',
-      value: stats?.total ?? '—'
+      value: stats?.total ?? '—',
+      accent: 'linear-gradient(135deg, #1d3557 0%, #3a6ea5 100%)',
+      text: '#f1f5fb'
     },
     {
       label: 'Developed',
       value: stats?.developed ?? '—',
-      helper: stats ? `${stats.developedPercentage}% of collection` : undefined
+      helper: stats ? `${stats.developedPercentage}% of collection` : undefined,
+      accent: 'linear-gradient(135deg, #2a9d8f 0%, #5ed5c0 100%)',
+      text: '#f0fffa'
     },
     {
       label: 'Undeveloped',
-      value: stats?.undeveloped ?? '—'
+      value: stats?.undeveloped ?? '—',
+      accent: 'linear-gradient(135deg, #e63946 0%, #f77f93 100%)',
+      text: '#fff5f6'
     }
   ];
 
@@ -519,21 +544,25 @@ function StatisticsStrip({
             flex: {md: 1},
             px: {xs: 2.5, md: 3},
             py: {xs: 2, md: 2.5},
-            borderRadius: 2,
-            border: (theme) => `1px solid ${theme.palette.divider}`,
-            background: (theme) => theme.palette.background.paper
+            borderRadius: 2.5,
+            border: 'none',
+            background: card.accent,
+            color: card.text,
+            boxShadow: '0 18px 28px rgba(18, 46, 76, 0.14)'
           }}
         >
           {loading ? (
-            <Skeleton variant="rectangular" height={64} />
+            <Skeleton variant="rectangular" height={64} sx={{bgcolor: 'rgba(255,255,255,0.35)'}} />
           ) : (
             <Stack spacing={0.5}>
-              <Typography variant="overline" color="text.secondary">
+              <Typography variant="overline" sx={{letterSpacing: 1.2, color: 'inherit'}}>
                 {card.label}
               </Typography>
-              <Typography variant="h5">{card.value}</Typography>
+              <Typography variant="h5" fontWeight={700} color="inherit">
+                {card.value}
+              </Typography>
               {card.helper && (
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{color: 'rgba(255,255,255,0.8)'}}>
                   {card.helper}
                 </Typography>
               )}

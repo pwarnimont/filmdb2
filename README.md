@@ -4,7 +4,7 @@ FilmDB is a full-stack web application for managing analogue film rolls and thei
 
 ## Technology Stack
 
-- **Frontend**: React 18, Vite, TypeScript, Material UI (square theme), React Query, React Hook Form, Zod, Cypress.
+- **Frontend**: React 18, Vite, TypeScript, Material UI (custom gradient theme), React Query, React Hook Form, Zod, Cypress.
 - **Backend**: Node.js 20, Express, TypeScript, Prisma ORM, Zod validation, Swagger UI, Jest + Supertest.
 - **Database**: PostgreSQL with Prisma migrations and seeding.
 - **Auth**: Email/password, bcrypt hashing, JWT access + refresh tokens in HTTP-only cookies.
@@ -55,10 +55,10 @@ The frontend dev server proxies API requests to `http://localhost:4000`.
 
 ### Seeded Accounts
 
-| Role  | Email               | Password  |
-|-------|---------------------|-----------|
-| Admin | `admin@filmdb.local` | `admin123` |
-| User  | `user@filmdb.local`  | `user123`  |
+| Role  | Email                | Password  | Names              |
+|-------|----------------------|-----------|--------------------|
+| Admin | `admin@filmdb.local` | `admin123` | Admin User         |
+| User  | `user@filmdb.local`  | `user123`  | Sample User        |
 
 ## Docker Workflow
 
@@ -79,8 +79,10 @@ The API container runs database migrations and seeds before starting.
 ## Admin Tools
 
 - Admins can toggle public registration in **Access Control**.
-- The **User Management** tab lists all accounts with role and status.
+- The **User Management** tab lists all accounts with role, status and full names.
 - Promote/demote between `USER` and `ADMIN`, disable or reactivate accounts, and set a temporary password for any user from the admin panel.
+- Use the **Add User** button to create new users directly from the admin panel (first name, last name, role, status, and temporary password).
+- Inline edit names directly in the user grid; changes persist automatically.
 
 ## Testing & Quality
 
@@ -114,7 +116,7 @@ Packages are listed in `requirements.txt` (psycopg2-binary, requests, python-dot
 
 ## CI/CD
 
-GitHub Actions workflow (`.github/workflows/ci.yml`) runs linting, type checks, backend tests, and production builds for both frontend and backend on every push/PR.
+GitHub Actions workflow (`.github/workflows/ci.yml`) runs linting, type checks, backend tests, and production builds for both frontend and backend on every push/PR. Dependency caching now targets the backend and frontend `package-lock.json` files individually to avoid cache misses.
 
 ## Project Structure
 
@@ -127,3 +129,7 @@ scripts/        Python helper scripts
 ```
 
 Feel free to extend the platform with additional reporting, camera inventory, or bulk import/export utilities using the provided foundations.
+
+## Recent UI refresh
+
+The application shell and auth screens now use a gradient/glassmorphism theme to reduce the stark white appearance. Film roll list pages highlight key collection statistics, and the admin area adopts the new accent colors for a cohesive look.

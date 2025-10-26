@@ -3,6 +3,8 @@ export type UserRole = 'USER' | 'ADMIN';
 export interface AuthUser {
   id: string;
   email: string;
+  firstName: string;
+  lastName: string;
   role: UserRole;
   isActive: boolean;
 }
@@ -73,6 +75,8 @@ export interface ApiError {
 export interface AdminUserSummary {
   id: string;
   email: string;
+  firstName: string;
+  lastName: string;
   role: UserRole;
   isActive: boolean;
   createdAt: string;

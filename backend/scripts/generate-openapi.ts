@@ -58,6 +58,8 @@ const openapi = {
         properties: {
           id: {type: 'string', format: 'uuid'},
           email: {type: 'string', format: 'email'},
+          firstName: {type: 'string'},
+          lastName: {type: 'string'},
           role: {type: 'string', enum: ['USER', 'ADMIN']},
           isActive: {type: 'boolean'}
         }
@@ -67,6 +69,8 @@ const openapi = {
         properties: {
           id: {type: 'string', format: 'uuid'},
           email: {type: 'string', format: 'email'},
+          firstName: {type: 'string'},
+          lastName: {type: 'string'},
           role: {type: 'string', enum: ['USER', 'ADMIN']},
           isActive: {type: 'boolean'},
           createdAt: {type: 'string', format: 'date-time'},
@@ -107,9 +111,11 @@ const openapi = {
                 type: 'object',
                 properties: {
                   email: {type: 'string', format: 'email'},
-                  password: {type: 'string', format: 'password'}
+                  password: {type: 'string', format: 'password'},
+                  firstName: {type: 'string'},
+                  lastName: {type: 'string'}
                 },
-                required: ['email', 'password']
+                required: ['email', 'password', 'firstName', 'lastName']
               }
             }
           }
@@ -349,6 +355,45 @@ const openapi = {
             }
           }
         }
+      },
+      post: {
+        summary: 'Create user',
+        security: [{cookieAuth: []}],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  email: {type: 'string', format: 'email'},
+                  password: {type: 'string', format: 'password'},
+                  firstName: {type: 'string'},
+                  lastName: {type: 'string'},
+                  role: {type: 'string', enum: ['USER', 'ADMIN']},
+                  isActive: {type: 'boolean'}
+                },
+                required: ['email', 'password', 'firstName', 'lastName']
+              }
+            }
+          }
+        },
+        responses: {
+          '201': {
+            description: 'User created',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    user: {$ref: '#/components/schemas/AdminUser'}
+                  }
+                }
+              }
+            }
+          },
+          '409': {description: 'Email already exists'}
+        }
       }
     },
     '/admin/users/{id}': {
@@ -364,7 +409,9 @@ const openapi = {
                 type: 'object',
                 properties: {
                   role: {type: 'string', enum: ['USER', 'ADMIN']},
-                  isActive: {type: 'boolean'}
+                  isActive: {type: 'boolean'},
+                  firstName: {type: 'string'},
+                  lastName: {type: 'string'}
                 }
               }
             }

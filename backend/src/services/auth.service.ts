@@ -5,8 +5,9 @@ import {hashPassword, verifyPassword} from '../utils/password';
 import type {UserRolePayload} from '../types/user';
 
 class AuthService {
-  async register(email: string, password: string): Promise<UserRolePayload> {
-    const existing = await prisma.user.findUnique({where: {email}});
+  async register(email: string, password: string, firstName: string, lastName: string): Promise<UserRolePayload> {
+    const normalizedEmail = email.toLowerCase().trim();
+    const existing = await prisma.user.findUnique({where: {email: normalizedEmail}});
     if (existing) {
       throw createHttpError(409, 'Email already registered');
     }
@@ -14,19 +15,29 @@ class AuthService {
     const passwordHash = await hashPassword(password);
     const user = await prisma.user.create({
       data: {
-        email,
-        passwordHash
+        email: normalizedEmail,
+        passwordHash,
+        firstName: firstName.trim(),
+        lastName: lastName.trim()
       }
     });
 
-    return {id: user.id, email: user.email, role: user.role, isActive: user.isActive};
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive
+    };
   }
 
   async validateCredentials(
     email: string,
     password: string
   ): Promise<UserRolePayload & {passwordHash: string}> {
-    const user = await prisma.user.findUnique({where: {email}});
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await prisma.user.findUnique({where: {email: normalizedEmail}});
     if (!user) {
       throw createHttpError(401, 'Invalid credentials');
     }
@@ -43,6 +54,8 @@ class AuthService {
     return {
       id: user.id,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role,
       isActive: user.isActive,
       passwordHash: user.passwordHash
@@ -57,7 +70,14 @@ class AuthService {
     if (!user.isActive) {
       return null;
     }
-    return {id: user.id, email: user.email, role: user.role, isActive: user.isActive};
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive
+    };
   }
 
   async getUserIncludingInactive(id: string): Promise<(UserRolePayload & {isActive: boolean}) | null> {
@@ -65,7 +85,14 @@ class AuthService {
     if (!user) {
       return null;
     }
-    return {id: user.id, email: user.email, role: user.role, isActive: user.isActive};
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive
+    };
   }
 }
 

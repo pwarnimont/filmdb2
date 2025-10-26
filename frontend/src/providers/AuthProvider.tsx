@@ -9,7 +9,7 @@ interface AuthContextValue {
   loading: boolean;
   allowRegistration: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   setAllowRegistration: (allow: boolean) => void;
@@ -58,8 +58,8 @@ export function AuthProvider({children}: {children: ReactNode}) {
   );
 
   const register = useCallback(
-    async (email: string, password: string) => {
-      const registered = await registerRequest(email, password);
+    async (email: string, password: string, firstName: string, lastName: string) => {
+      const registered = await registerRequest(email, password, firstName, lastName);
       setUser(registered);
       snackbar.showMessage('Registration successful', 'success');
     },

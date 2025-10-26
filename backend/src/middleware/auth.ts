@@ -18,6 +18,8 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     req.currentUser = {
       id: user.id,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role
     };
     next();
@@ -40,6 +42,8 @@ export async function attachOptionalUser(req: Request, _res: Response, next: Nex
     req.currentUser = {
       id: user.id,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role
     };
   } catch (error) {

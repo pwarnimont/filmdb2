@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   Alert,
   Box,
@@ -21,9 +21,11 @@ import {
   Typography
 } from '@mui/material';
 import {DataGrid, type GridColDef} from '@mui/x-data-grid';
+import AddIcon from '@mui/icons-material/Add';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {
+  createAdminUser,
   fetchAdminUsers,
   fetchRegistrationSetting,
   resetAdminUserPassword,
@@ -33,6 +35,27 @@ import {
 import type {AdminUserSummary} from '../types/api';
 import {useAuth} from '../providers/AuthProvider';
 import {useSnackbar} from '../providers/SnackbarProvider';
+import {z} from 'zod';
+
+const createUserSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  email: z.string().email('Enter a valid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  role: z.enum(['USER', 'ADMIN']),
+  isActive: z.boolean()
+});
+
+type CreateUserForm = z.infer<typeof createUserSchema>;
+
+const CREATE_USER_INITIAL: CreateUserForm = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  role: 'USER',
+  isActive: true
+};
 
 function AdminSettingsPage() {
   const {allowRegistration, setAllowRegistration, user: currentUser} = useAuth();
@@ -44,6 +67,9 @@ function AdminSettingsPage() {
   const [passwordDialogUser, setPasswordDialogUser] = useState<AdminUserSummary | null>(null);
   const [passwordValue, setPasswordValue] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createValues, setCreateValues] = useState<CreateUserForm>(CREATE_USER_INITIAL);
+  const [createErrors, setCreateErrors] = useState<Partial<Record<keyof CreateUserForm, string>>>({});
 
   const registrationQuery = useQuery({
     queryKey: ['admin', 'registration-setting'],
@@ -73,7 +99,7 @@ function AdminSettingsPage() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: ({id, payload}: {id: string; payload: {role?: 'USER' | 'ADMIN'; isActive?: boolean}}) =>
+    mutationFn: ({id, payload}: {id: string; payload: Parameters<typeof updateAdminUser>[1]}) =>
       updateAdminUser(id, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({queryKey: ['admin', 'users']});
@@ -96,6 +122,68 @@ function AdminSettingsPage() {
     onError: () => snackbar.showMessage('Could not update password', 'error')
   });
 
+  const createUserMutation = useMutation({
+    mutationFn: (payload: CreateUserForm) => createAdminUser(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({queryKey: ['admin', 'users']});
+      snackbar.showMessage('User created successfully', 'success');
+      setCreateDialogOpen(false);
+      setCreateValues(CREATE_USER_INITIAL);
+      setCreateErrors({});
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Could not create user';
+      snackbar.showMessage(message, 'error');
+    }
+  });
+
+  const handleInlineNameUpdate = useCallback(
+    (user: AdminUserSummary, field: 'firstName' | 'lastName', rawValue: string): boolean => {
+      const trimmed = rawValue.trim();
+      if (!trimmed || trimmed === user[field]) {
+        if (!trimmed) {
+          snackbar.showMessage(`${field === 'firstName' ? 'First' : 'Last'} name cannot be empty`, 'error');
+        }
+        return false;
+      }
+      updateUserMutation.mutate({id: user.id, payload: {[field]: trimmed}});
+      return true;
+    },
+    [snackbar, updateUserMutation]
+  );
+
+  const handleOpenCreateDialog = () => {
+    setCreateValues(CREATE_USER_INITIAL);
+    setCreateErrors({});
+    setCreateDialogOpen(true);
+  };
+
+  const handleCloseCreateDialog = () => {
+    setCreateDialogOpen(false);
+    setCreateErrors({});
+  };
+
+  const handleCreateInputChange = (field: keyof CreateUserForm) => (value: string | boolean) => {
+    setCreateValues((prev) => ({...prev, [field]: value}));
+    setCreateErrors((prev) => ({...prev, [field]: undefined}));
+  };
+
+  const handleCreateSubmit = () => {
+    const result = createUserSchema.safeParse(createValues);
+    if (!result.success) {
+      const fieldErrors = result.error.flatten().fieldErrors;
+      const mapped: Partial<Record<keyof CreateUserForm, string>> = {};
+      (Object.keys(fieldErrors) as Array<keyof CreateUserForm>).forEach((key) => {
+        if (fieldErrors[key]?.length) {
+          mapped[key] = fieldErrors[key]![0];
+        }
+      });
+      setCreateErrors(mapped);
+      return;
+    }
+    createUserMutation.mutate(result.data);
+  };
+
   const handleClosePasswordDialog = () => {
     setPasswordDialogUser(null);
     setPasswordValue('');
@@ -104,6 +192,50 @@ function AdminSettingsPage() {
 
   const columns = useMemo<GridColDef<AdminUserSummary>[]>(
     () => [
+      {
+        field: 'firstName',
+        headerName: 'First Name',
+        width: 160,
+        sortable: false,
+        renderCell: ({row}) => (
+          <TextField
+            size="small"
+            variant="standard"
+            key={`${row.id}-firstName-${row.firstName}`}
+            defaultValue={row.firstName}
+            onBlur={(event) => {
+              const updated = handleInlineNameUpdate(row, 'firstName', event.target.value);
+              if (!updated) {
+                event.target.value = row.firstName;
+              }
+            }}
+            onClick={(event) => event.stopPropagation()}
+            fullWidth
+          />
+        )
+      },
+      {
+        field: 'lastName',
+        headerName: 'Last Name',
+        width: 160,
+        sortable: false,
+        renderCell: ({row}) => (
+          <TextField
+            size="small"
+            variant="standard"
+            key={`${row.id}-lastName-${row.lastName}`}
+            defaultValue={row.lastName}
+            onBlur={(event) => {
+              const updated = handleInlineNameUpdate(row, 'lastName', event.target.value);
+              if (!updated) {
+                event.target.value = row.lastName;
+              }
+            }}
+            onClick={(event) => event.stopPropagation()}
+            fullWidth
+          />
+        )
+      },
       {
         field: 'email',
         headerName: 'Email',
@@ -187,7 +319,7 @@ function AdminSettingsPage() {
         )
       }
     ],
-    [currentUser?.id, updateUserMutation]
+    [currentUser?.id, handleInlineNameUpdate, updateUserMutation]
   );
 
   if (registrationQuery.isLoading) {
@@ -199,7 +331,14 @@ function AdminSettingsPage() {
   }
 
   return (
-    <Paper sx={{p: 4}}>
+    <Paper
+      sx={{
+        p: {xs: 3, md: 4},
+        borderRadius: {xs: 2, md: 3},
+        background: 'linear-gradient(160deg, rgba(255,255,255,0.96) 0%, rgba(235,241,250,0.92) 100%)',
+        boxShadow: '0 18px 36px rgba(18, 46, 76, 0.1)'
+      }}
+    >
       <Stack spacing={3}>
         <div>
           <Typography variant="h4" gutterBottom>
@@ -213,6 +352,14 @@ function AdminSettingsPage() {
           value={tab}
           onChange={(_event, value) => setTab(value)}
           aria-label="Admin settings tabs"
+          textColor="primary"
+          indicatorColor="primary"
+          sx={{
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderRadius: 3
+            }
+          }}
         >
           <Tab label="Access Control" value="settings" />
           <Tab label="User Management" value="users" />
@@ -235,6 +382,25 @@ function AdminSettingsPage() {
         )}
         {tab === 'users' && (
           <Box>
+            <Stack
+              direction={{xs: 'column', sm: 'row'}}
+              spacing={1.5}
+              justifyContent="space-between"
+              alignItems={{sm: 'center'}}
+              sx={{mb: 2}}
+            >
+              <Typography variant="subtitle1" color="text.secondary">
+                Manage platform accounts and elevate collaborators.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleOpenCreateDialog}
+                sx={{alignSelf: {xs: 'stretch', sm: 'auto'}}}
+              >
+                Add User
+              </Button>
+            </Stack>
             {usersQuery.isLoading ? (
               <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4}}>
                 <CircularProgress />
@@ -259,6 +425,80 @@ function AdminSettingsPage() {
           </Box>
         )}
       </Stack>
+
+      <Dialog open={createDialogOpen} onClose={handleCloseCreateDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Add New User</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{mt: 1}}>
+            <Stack direction={{xs: 'column', sm: 'row'}} spacing={2}>
+              <TextField
+                label="First Name"
+                value={createValues.firstName}
+                onChange={(event) => handleCreateInputChange('firstName')(event.target.value)}
+                error={!!createErrors.firstName}
+                helperText={createErrors.firstName}
+                fullWidth
+              />
+              <TextField
+                label="Last Name"
+                value={createValues.lastName}
+                onChange={(event) => handleCreateInputChange('lastName')(event.target.value)}
+                error={!!createErrors.lastName}
+                helperText={createErrors.lastName}
+                fullWidth
+              />
+            </Stack>
+            <TextField
+              label="Email"
+              type="email"
+              value={createValues.email}
+              onChange={(event) => handleCreateInputChange('email')(event.target.value)}
+              error={!!createErrors.email}
+              helperText={createErrors.email}
+              fullWidth
+            />
+            <TextField
+              label="Temporary Password"
+              type="password"
+              value={createValues.password}
+              onChange={(event) => handleCreateInputChange('password')(event.target.value)}
+              error={!!createErrors.password}
+              helperText={createErrors.password ?? 'Minimum 8 characters'}
+              fullWidth
+            />
+            <Stack direction={{xs: 'column', sm: 'row'}} spacing={2} alignItems={{sm: 'center'}}>
+              <Select
+                size="small"
+                value={createValues.role}
+                onChange={(event) => handleCreateInputChange('role')(event.target.value)}
+                sx={{minWidth: 160}}
+              >
+                <MenuItem value="USER">User</MenuItem>
+                <MenuItem value="ADMIN">Admin</MenuItem>
+              </Select>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={createValues.isActive}
+                    onChange={(_, checked) => handleCreateInputChange('isActive')(checked)}
+                  />
+                }
+                label={createValues.isActive ? 'Active on creation' : 'Disabled on creation'}
+              />
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseCreateDialog}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleCreateSubmit}
+            disabled={createUserMutation.status === 'pending'}
+          >
+            Create User
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={!!passwordDialogUser} onClose={handleClosePasswordDialog} maxWidth="xs" fullWidth>
         <DialogTitle>Reset Password</DialogTitle>

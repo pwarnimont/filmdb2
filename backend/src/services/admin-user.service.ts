@@ -3,12 +3,14 @@ import createHttpError from 'http-errors';
 import {prisma} from '../config/prisma';
 import {hashPassword} from '../utils/password';
 
-import type {AdminUserUpdateInput} from '../schemas/admin.schema';
+import type {AdminUserCreateInput, AdminUserUpdateInput} from '../schemas/admin.schema';
 import type {UserRole} from '../types/user';
 
 export interface AdminUserDto {
   id: string;
   email: string;
+  firstName: string;
+  lastName: string;
   role: UserRole;
   isActive: boolean;
   createdAt: string;
@@ -18,6 +20,8 @@ export interface AdminUserDto {
 function toDto(user: {
   id: string;
   email: string;
+  firstName: string;
+  lastName: string;
   role: UserRole;
   isActive: boolean;
   createdAt: Date;
@@ -26,6 +30,8 @@ function toDto(user: {
   return {
     id: user.id,
     email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
     role: user.role,
     isActive: user.isActive,
     createdAt: user.createdAt.toISOString(),
@@ -55,6 +61,31 @@ class AdminUserService {
     return users.map(toDto);
   }
 
+  async createUser(data: AdminUserCreateInput): Promise<AdminUserDto> {
+    const normalizedEmail = data.email.toLowerCase().trim();
+    const existing = await prisma.user.findUnique({where: {email: normalizedEmail}});
+    if (existing) {
+      throw createHttpError(409, 'A user with this email already exists');
+    }
+
+    const passwordHash = await hashPassword(data.password);
+    const firstName = data.firstName.trim();
+    const lastName = data.lastName.trim();
+    const email = normalizedEmail;
+    const created = await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        role: data.role,
+        isActive: data.isActive
+      }
+    });
+
+    return toDto(created);
+  }
+
   async updateUser(id: string, data: AdminUserUpdateInput, actingUserId: string): Promise<AdminUserDto> {
     const existing = await prisma.user.findUnique({where: {id}});
     if (!existing) {
@@ -77,9 +108,14 @@ class AdminUserService {
       }
     }
 
+    const trimmedFirst = data.firstName?.trim();
+    const trimmedLast = data.lastName?.trim();
+
     const updated = await prisma.user.update({
       where: {id},
       data: {
+        firstName: trimmedFirst ? trimmedFirst : existing.firstName,
+        lastName: trimmedLast ? trimmedLast : existing.lastName,
         role: data.role ?? existing.role,
         isActive: data.isActive ?? existing.isActive
       }

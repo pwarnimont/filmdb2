@@ -3,11 +3,17 @@ import type {Request, Response} from 'express';
 import {adminUserService} from '../services/admin-user.service';
 import {asyncHandler} from '../utils/async-handler';
 import {parseWithSchema} from '../utils/validation';
-import {adminUserPasswordSchema, adminUserUpdateSchema} from '../schemas/admin.schema';
+import {adminUserCreateSchema, adminUserPasswordSchema, adminUserUpdateSchema} from '../schemas/admin.schema';
 
 export const listUsers = asyncHandler(async (_req: Request, res: Response) => {
   const users = await adminUserService.listUsers();
   res.json({users});
+});
+
+export const createUser = asyncHandler(async (req: Request, res: Response) => {
+  const data = parseWithSchema(adminUserCreateSchema, req.body);
+  const created = await adminUserService.createUser(data);
+  res.status(201).json({user: created});
 });
 
 export const updateUser = asyncHandler(async (req: Request, res: Response) => {

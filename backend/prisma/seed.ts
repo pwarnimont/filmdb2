@@ -48,6 +48,8 @@ async function main() {
     update: {},
     create: {
       email: 'admin@filmdb.local',
+      firstName: 'Admin',
+      lastName: 'User',
       passwordHash: adminPassword,
       role: 'ADMIN',
       isActive: true
@@ -59,6 +61,8 @@ async function main() {
     update: {},
     create: {
       email: 'user@filmdb.local',
+      firstName: 'Sample',
+      lastName: 'User',
       passwordHash: userPassword,
       role: 'USER',
       isActive: true

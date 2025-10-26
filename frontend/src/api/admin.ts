@@ -21,6 +21,17 @@ export async function updateRegistrationSetting(allowRegistration: boolean): Pro
 interface UpdateAdminUserPayload {
   role?: UserRole;
   isActive?: boolean;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface CreateAdminUserPayload {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role?: UserRole;
+  isActive?: boolean;
 }
 
 export async function fetchAdminUsers(): Promise<AdminUserSummary[]> {
@@ -38,4 +49,9 @@ export async function updateAdminUser(
 
 export async function resetAdminUserPassword(id: string, password: string): Promise<void> {
   await client.put(`/admin/users/${id}/password`, {password});
+}
+
+export async function createAdminUser(payload: CreateAdminUserPayload): Promise<AdminUserSummary> {
+  const {data} = await client.post<{user: AdminUserSummary}>('/admin/users', payload);
+  return data.user;
 }

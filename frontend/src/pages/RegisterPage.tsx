@@ -10,6 +10,8 @@ import {useSnackbar} from '../providers/SnackbarProvider';
 
 const schema = z
   .object({
+    firstName: z.string().min(1, 'Enter your first name'),
+    lastName: z.string().min(1, 'Enter your last name'),
     email: z.string().email('Enter a valid email'),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string()
@@ -25,7 +27,7 @@ type RegisterFormValues = z.infer<typeof schema>;
 function RegisterPage() {
   const {register: registerField, handleSubmit, formState} = useForm<RegisterFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {email: '', password: '', confirmPassword: ''}
+    defaultValues: {firstName: '', lastName: '', email: '', password: '', confirmPassword: ''}
   });
   const {register, user, allowRegistration} = useAuth();
   const snackbar = useSnackbar();
@@ -43,7 +45,7 @@ function RegisterPage() {
       return;
     }
     try {
-      await register(values.email, values.password);
+      await register(values.email, values.password, values.firstName, values.lastName);
       navigate('/film-rolls');
     } catch (error) {
       snackbar.showMessage('Registration failed. Try a different email.', 'error');
@@ -51,8 +53,26 @@ function RegisterPage() {
   });
 
   return (
-    <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'grey.100'}}>
-      <Paper elevation={1} sx={{p: 4, minWidth: 360}}>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: 'radial-gradient(circle at top, #f1f6ff 0%, #e4ecfd 45%, #f9f9ff 100%)',
+        px: 2
+      }}
+    >
+      <Paper
+        elevation={0}
+        sx={{
+          p: {xs: 3, sm: 4},
+          minWidth: {xs: '100%', sm: 380},
+          borderRadius: 3,
+          boxShadow: '0 24px 44px rgba(18, 46, 76, 0.12)',
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.97) 0%, rgba(237, 244, 254, 0.95) 100%)'
+        }}
+      >
         <Stack spacing={3} component="form" onSubmit={onSubmit}>
           <div>
             <Typography variant="h5" gutterBottom>
@@ -65,6 +85,22 @@ function RegisterPage() {
           {!allowRegistration && (
             <Alert severity="warning">Registration is currently disabled by an administrator.</Alert>
           )}
+          <Stack direction={{xs: 'column', sm: 'row'}} spacing={2}>
+            <TextField
+              label="First Name"
+              {...registerField('firstName')}
+              error={!!formState.errors.firstName}
+              helperText={formState.errors.firstName?.message}
+              fullWidth
+            />
+            <TextField
+              label="Last Name"
+              {...registerField('lastName')}
+              error={!!formState.errors.lastName}
+              helperText={formState.errors.lastName?.message}
+              fullWidth
+            />
+          </Stack>
           <TextField
             label="Email"
             type="email"

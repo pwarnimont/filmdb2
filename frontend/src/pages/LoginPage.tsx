@@ -43,8 +43,26 @@ function LoginPage() {
   });
 
   return (
-    <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'grey.100'}}>
-      <Paper elevation={1} sx={{p: 4, minWidth: 360}}>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: 'radial-gradient(circle at top, #f1f6ff 0%, #e4ecfd 45%, #f9f9ff 100%)',
+        px: 2
+      }}
+    >
+      <Paper
+        elevation={0}
+        sx={{
+          p: {xs: 3, sm: 4},
+          minWidth: {xs: '100%', sm: 360},
+          borderRadius: 3,
+          boxShadow: '0 24px 44px rgba(18, 46, 76, 0.12)',
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.97) 0%, rgba(237, 244, 254, 0.95) 100%)'
+        }}
+      >
         <Stack spacing={3} component="form" onSubmit={onSubmit}>
           <div>
             <Typography variant="h5" gutterBottom>

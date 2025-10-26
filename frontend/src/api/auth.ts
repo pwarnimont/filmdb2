@@ -18,8 +18,8 @@ export async function login(email: string, password: string): Promise<AuthUser> 
   return data.user;
 }
 
-export async function register(email: string, password: string): Promise<AuthUser> {
-  const {data} = await client.post<AuthResponse>('/auth/register', {email, password});
+export async function register(email: string, password: string, firstName: string, lastName: string): Promise<AuthUser> {
+  const {data} = await client.post<AuthResponse>('/auth/register', {email, password, firstName, lastName});
   return data.user;
 }
 

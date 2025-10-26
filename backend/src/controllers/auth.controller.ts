@@ -15,7 +15,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const input = registerSchema.parse(req.body);
-  const user = await authService.register(input.email, input.password);
+  const user = await authService.register(input.email, input.password, input.firstName, input.lastName);
 
   const accessToken = signAccessToken(user);
   const refreshToken = signRefreshToken(user);
@@ -31,7 +31,14 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const input = loginSchema.parse(req.body);
   const user = await authService.validateCredentials(input.email, input.password);
 
-  const payload = {id: user.id, email: user.email, role: user.role, isActive: user.isActive};
+  const payload = {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: user.role,
+    isActive: user.isActive
+  };
   const accessToken = signAccessToken(payload);
   const refreshToken = signRefreshToken(payload);
 
