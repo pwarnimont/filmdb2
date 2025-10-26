@@ -1,6 +1,6 @@
 import {Router} from 'express';
 
-import {createUser, listUsers, resetUserPassword, updateUser} from '../controllers/admin-user.controller';
+import {createUser, deleteUser, listUsers, resetUserPassword, updateUser} from '../controllers/admin-user.controller';
 import {getRegistrationSetting, updateRegistrationSetting} from '../controllers/admin.controller';
 import {requireAuth} from '../middleware/auth';
 import {requireRole} from '../middleware/role';
@@ -17,5 +17,6 @@ router.get('/users', listUsers);
 router.post('/users', createUser);
 router.put('/users/:id', updateUser);
 router.put('/users/:id/password', resetUserPassword);
+router.delete('/users/:id', deleteUser);
 
 export default router;

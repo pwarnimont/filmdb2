@@ -8,6 +8,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogContentText,
   DialogTitle,
   FormControlLabel,
   MenuItem,
@@ -22,10 +23,12 @@ import {
 } from '@mui/material';
 import {DataGrid, type GridColDef} from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {
   createAdminUser,
+  deleteAdminUser,
   fetchAdminUsers,
   fetchRegistrationSetting,
   resetAdminUserPassword,
@@ -70,6 +73,7 @@ function AdminSettingsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createValues, setCreateValues] = useState<CreateUserForm>(CREATE_USER_INITIAL);
   const [createErrors, setCreateErrors] = useState<Partial<Record<keyof CreateUserForm, string>>>({});
+  const [deleteDialogUser, setDeleteDialogUser] = useState<AdminUserSummary | null>(null);
 
   const registrationQuery = useQuery({
     queryKey: ['admin', 'registration-setting'],
@@ -133,6 +137,19 @@ function AdminSettingsPage() {
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Could not create user';
+      snackbar.showMessage(message, 'error');
+    }
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: string) => deleteAdminUser(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({queryKey: ['admin', 'users']});
+      snackbar.showMessage('User removed', 'success');
+      setDeleteDialogUser(null);
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Could not remove user';
       snackbar.showMessage(message, 'error');
     }
   });
@@ -315,6 +332,16 @@ function AdminSettingsPage() {
             >
               {row.isActive ? 'Disable' : 'Activate'}
             </Button>
+            <Button
+              size="small"
+              color="error"
+              variant="text"
+              startIcon={<DeleteOutlineIcon fontSize="small" />}
+              disabled={currentUser?.id === row.id}
+              onClick={() => setDeleteDialogUser(row)}
+            >
+              Remove
+            </Button>
           </Stack>
         )
       }
@@ -335,8 +362,8 @@ function AdminSettingsPage() {
       sx={{
         p: {xs: 3, md: 4},
         borderRadius: {xs: 2, md: 3},
-        background: 'linear-gradient(160deg, rgba(255,255,255,0.96) 0%, rgba(235,241,250,0.92) 100%)',
-        boxShadow: '0 18px 36px rgba(18, 46, 76, 0.1)'
+        background: 'linear-gradient(160deg, rgba(255,255,255,0.96) 0%, rgba(226,241,230,0.92) 100%)',
+        boxShadow: '0 18px 36px rgba(26, 74, 45, 0.1)'
       }}
     >
       <Stack spacing={3}>
@@ -540,6 +567,26 @@ function AdminSettingsPage() {
             disabled={resetPasswordMutation.status === 'pending'}
           >
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!deleteDialogUser} onClose={() => setDeleteDialogUser(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Remove User</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to remove {deleteDialogUser?.email}? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogUser(null)}>Cancel</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => deleteDialogUser && deleteUserMutation.mutate(deleteDialogUser.id)}
+            disabled={deleteUserMutation.status === 'pending'}
+          >
+            Remove
           </Button>
         </DialogActions>
       </Dialog>

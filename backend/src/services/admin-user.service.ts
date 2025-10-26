@@ -137,6 +137,23 @@ class AdminUserService {
       data: {passwordHash}
     });
   }
+
+  async deleteUser(id: string, actingUserId: string): Promise<void> {
+    const existing = await prisma.user.findUnique({where: {id}});
+    if (!existing) {
+      throw createHttpError(404, 'User not found');
+    }
+
+    if (existing.id === actingUserId) {
+      throw createHttpError(400, 'You cannot delete your own account');
+    }
+
+    if (existing.role === 'ADMIN' && existing.isActive) {
+      await ensureAnotherActiveAdmin(existing.id);
+    }
+
+    await prisma.user.delete({where: {id}});
+  }
 }
 
 export const adminUserService = new AdminUserService();

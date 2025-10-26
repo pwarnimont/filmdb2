@@ -29,25 +29,51 @@ export function AppLayout() {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #eff4fb 0%, #dde7f6 35%, #f7f8fb 100%)'
+        background: 'linear-gradient(180deg, #f0f7f2 0%, #e4eee6 35%, #f9fbf8 100%)'
       }}
     >
       <AppBar
         position="static"
         color="primary"
         elevation={0}
-        sx={{background: 'linear-gradient(135deg, #1d3557 0%, #3a6ea5 100%)'}}
+        sx={{background: 'linear-gradient(135deg, #1f5130 0%, #3f8b58 100%)'}}
       >
         <Toolbar sx={{py: 1.5}}>
           <Typography variant="h6" sx={{flexGrow: 1, cursor: 'pointer'}} onClick={handleNavigate('/film-rolls')}>
             FilmDB
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center">
-            <Button color={isActive('/film-rolls') ? 'secondary' : 'inherit'} onClick={handleNavigate('/film-rolls')}>
+            <Button
+              color="inherit"
+              sx={{
+                color: isActive('/film-rolls') ? 'secondary.main' : 'inherit',
+                fontWeight: isActive('/film-rolls') ? 600 : 500,
+                backgroundColor: isActive('/film-rolls') ? 'rgba(76, 175, 111, 0.15)' : 'transparent',
+                '&:hover': {
+                  backgroundColor: isActive('/film-rolls')
+                    ? 'rgba(76, 175, 111, 0.22)'
+                    : 'rgba(255, 255, 255, 0.08)'
+                }
+              }}
+              onClick={handleNavigate('/film-rolls')}
+            >
               Film Rolls
             </Button>
             {user.role === 'ADMIN' && (
-              <Button color={isActive('/admin') ? 'secondary' : 'inherit'} onClick={handleNavigate('/admin/settings')}>
+              <Button
+                color="inherit"
+                sx={{
+                  color: isActive('/admin') ? 'secondary.main' : 'inherit',
+                  fontWeight: isActive('/admin') ? 600 : 500,
+                  backgroundColor: isActive('/admin') ? 'rgba(76, 175, 111, 0.15)' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: isActive('/admin')
+                      ? 'rgba(76, 175, 111, 0.22)'
+                      : 'rgba(255, 255, 255, 0.08)'
+                  }
+                }}
+                onClick={handleNavigate('/admin/settings')}
+              >
                 Admin Settings
               </Button>
             )}
@@ -82,7 +108,7 @@ export function AppLayout() {
             flexGrow: 1,
             backgroundColor: 'rgba(255,255,255,0.9)',
             borderRadius: {xs: 2, md: 3},
-            boxShadow: '0 18px 36px rgba(13, 41, 74, 0.12)',
+            boxShadow: '0 18px 36px rgba(23, 66, 41, 0.12)',
             px: {xs: 2.5, sm: 4, md: 6},
             py: {xs: 3, sm: 4},
             backdropFilter: 'blur(4px)'

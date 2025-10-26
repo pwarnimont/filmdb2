@@ -55,3 +55,7 @@ export async function createAdminUser(payload: CreateAdminUserPayload): Promise<
   const {data} = await client.post<{user: AdminUserSummary}>('/admin/users', payload);
   return data.user;
 }
+
+export async function deleteAdminUser(id: string): Promise<void> {
+  await client.delete(`/admin/users/${id}`);
+}
