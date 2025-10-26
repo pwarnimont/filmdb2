@@ -1,4 +1,4 @@
-describe('FilmDB smoke test', () => {
+describe('Film Manager smoke test', () => {
   it('loads the login page', () => {
     cy.visit('/');
     cy.contains('Welcome back');

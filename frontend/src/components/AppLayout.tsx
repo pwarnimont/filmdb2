@@ -2,6 +2,7 @@ import {AppBar, Box, Button, Container, Stack, Toolbar, Typography} from '@mui/m
 import {Outlet, useLocation, useNavigate} from 'react-router-dom';
 
 import {useAuth} from '../providers/AuthProvider';
+import logoUrl from '../assets/film-manager-logo.svg';
 
 export function AppLayout() {
   const {user, logout} = useAuth();
@@ -39,9 +40,23 @@ export function AppLayout() {
         sx={{background: 'linear-gradient(135deg, #1f5130 0%, #3f8b58 100%)'}}
       >
         <Toolbar sx={{py: 1.5}}>
-          <Typography variant="h6" sx={{flexGrow: 1, cursor: 'pointer'}} onClick={handleNavigate('/film-rolls')}>
-            FilmDB
-          </Typography>
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1.5}
+            sx={{flexGrow: 1, cursor: 'pointer'}}
+            onClick={handleNavigate('/film-rolls')}
+          >
+            <Box
+              component="img"
+              src={logoUrl}
+              alt="Film Manager logo"
+              sx={{width: 36, height: 36, borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.18)'}}
+            />
+            <Typography variant="h6" sx={{fontWeight: 700, letterSpacing: '0.04em'}}>
+              Film Manager
+            </Typography>
+          </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
             <Button
               color="inherit"
