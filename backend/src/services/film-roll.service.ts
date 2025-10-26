@@ -2,7 +2,6 @@ import {Prisma} from '@prisma/client';
 import createHttpError from 'http-errors';
 
 import {prisma} from '../config/prisma';
-import type {UserRolePayload} from '../types/user';
 import {
   DevelopmentInput,
   FilmRollCreateInput,
@@ -10,6 +9,7 @@ import {
   FilmRollUpdateInput,
   PartialDevelopmentInput
 } from '../schemas/film-roll.schema';
+import type {UserRolePayload} from '../types/user';
 import {filmFormatToApi, parseFilmFormat} from '../utils/film-format';
 
 export interface FilmRollDto {

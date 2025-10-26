@@ -1,5 +1,5 @@
-import {prisma} from '../config/prisma';
 import env from '../config/env';
+import {prisma} from '../config/prisma';
 
 class SettingsService {
   private async getSettingsRecord() {

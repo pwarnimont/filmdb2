@@ -1,10 +1,9 @@
 import createHttpError from 'http-errors';
 
-import {prisma} from '../config/prisma';
-import {hashPassword} from '../utils/password';
-
 import type {AdminUserCreateInput, AdminUserUpdateInput} from '../schemas/admin.schema';
 import type {UserRole} from '../types/user';
+import {prisma} from '../config/prisma';
+import {hashPassword} from '../utils/password';
 
 export interface AdminUserDto {
   id: string;

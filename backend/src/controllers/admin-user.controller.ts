@@ -1,9 +1,9 @@
 import type {Request, Response} from 'express';
 
+import {adminUserCreateSchema, adminUserPasswordSchema, adminUserUpdateSchema} from '../schemas/admin.schema';
 import {adminUserService} from '../services/admin-user.service';
 import {asyncHandler} from '../utils/async-handler';
 import {parseWithSchema} from '../utils/validation';
-import {adminUserCreateSchema, adminUserPasswordSchema, adminUserUpdateSchema} from '../schemas/admin.schema';
 
 export const listUsers = asyncHandler(async (_req: Request, res: Response) => {
   const users = await adminUserService.listUsers();

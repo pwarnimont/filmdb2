@@ -1,9 +1,9 @@
 import type {Request, Response} from 'express';
 import createHttpError from 'http-errors';
 
+import {loginSchema, registerSchema} from '../schemas/auth.schema';
 import {authService} from '../services/auth.service';
 import {settingsService} from '../services/settings.service';
-import {loginSchema, registerSchema} from '../schemas/auth.schema';
 import {asyncHandler} from '../utils/async-handler';
 import {setAuthCookies, clearAuthCookies} from '../utils/cookies';
 import {signAccessToken, signRefreshToken, verifyRefreshToken} from '../utils/token';

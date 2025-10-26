@@ -1,8 +1,8 @@
 import createHttpError from 'http-errors';
 
+import type {UserRolePayload} from '../types/user';
 import {prisma} from '../config/prisma';
 import {hashPassword, verifyPassword} from '../utils/password';
-import type {UserRolePayload} from '../types/user';
 
 class AuthService {
   async register(email: string, password: string, firstName: string, lastName: string): Promise<UserRolePayload> {

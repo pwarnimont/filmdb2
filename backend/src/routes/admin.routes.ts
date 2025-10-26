@@ -1,7 +1,7 @@
 import {Router} from 'express';
 
-import {getRegistrationSetting, updateRegistrationSetting} from '../controllers/admin.controller';
 import {createUser, listUsers, resetUserPassword, updateUser} from '../controllers/admin-user.controller';
+import {getRegistrationSetting, updateRegistrationSetting} from '../controllers/admin.controller';
 import {requireAuth} from '../middleware/auth';
 import {requireRole} from '../middleware/role';
 

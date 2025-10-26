@@ -1,5 +1,9 @@
 import request from 'supertest';
 
+import app from '../app';
+import {authService} from '../services/auth.service';
+import {settingsService} from '../services/settings.service';
+
 jest.mock('../services/settings.service', () => ({
   settingsService: {
     getAllowRegistration: jest.fn().mockResolvedValue(true)
@@ -31,22 +35,16 @@ jest.mock('../utils/cookies', () => ({
   clearAuthCookies: jest.fn()
 }));
 
-const {authService} = jest.requireMock('../services/auth.service');
-const {settingsService} = jest.requireMock('../services/settings.service');
+const authServiceMock = authService as jest.Mocked<typeof authService>;
+const settingsServiceMock = settingsService as jest.Mocked<typeof settingsService>;
 
 describe('Auth routes', () => {
-  let app: typeof import('../app').default;
-
-  beforeAll(() => {
-    app = require('../app').default;
-  });
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('returns allowRegistration config', async () => {
-    settingsService.getAllowRegistration.mockResolvedValueOnce(false);
+    settingsServiceMock.getAllowRegistration.mockResolvedValueOnce(false);
 
     const res = await request(app).get('/api/auth/config');
 
@@ -55,7 +53,7 @@ describe('Auth routes', () => {
   });
 
   it('logs in user and returns payload', async () => {
-    authService.validateCredentials.mockResolvedValue({
+    authServiceMock.validateCredentials.mockResolvedValue({
       id: 'user-1',
       email: 'user@test.com',
       role: 'USER',

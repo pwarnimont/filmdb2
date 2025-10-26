@@ -1,8 +1,8 @@
 import type {NextFunction, Request, Response} from 'express';
 import createHttpError from 'http-errors';
 
-import {verifyAccessToken} from '../utils/token';
 import {authService} from '../services/auth.service';
+import {verifyAccessToken} from '../utils/token';
 
 export async function requireAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {

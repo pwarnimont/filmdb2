@@ -4,10 +4,10 @@ import express from 'express';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 
-import env from './config/env';
-import routes from './routes';
 import openapiDocument from '../openapi.json';
+import env from './config/env';
 import {errorHandler, notFoundHandler} from './middleware/error-handler';
+import routes from './routes';
 
 const app = express();
 

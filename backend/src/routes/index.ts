@@ -1,8 +1,8 @@
 import {Router} from 'express';
 
+import adminRoutes from './admin.routes';
 import authRoutes from './auth.routes';
 import filmRollRoutes from './film-roll.routes';
-import adminRoutes from './admin.routes';
 
 const router = Router();
 
