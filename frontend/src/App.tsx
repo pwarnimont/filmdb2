@@ -8,6 +8,9 @@ import FilmRollListPage from './pages/FilmRollListPage';
 import FilmRollDetailPage from './pages/FilmRollDetailPage';
 import FilmRollFormPage from './pages/FilmRollFormPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
+import PrintListPage from './pages/PrintListPage';
+import PrintFormPage from './pages/PrintFormPage';
+import PrintDetailPage from './pages/PrintDetailPage';
 
 function App() {
   return (
@@ -22,6 +25,10 @@ function App() {
           <Route path="/film-rolls/new" element={<FilmRollFormPage mode="create" />} />
           <Route path="/film-rolls/:id" element={<FilmRollDetailPage />} />
           <Route path="/film-rolls/:id/edit" element={<FilmRollFormPage mode="edit" />} />
+          <Route path="/prints" element={<PrintListPage />} />
+          <Route path="/prints/new" element={<PrintFormPage mode="create" />} />
+          <Route path="/prints/:id" element={<PrintDetailPage />} />
+          <Route path="/prints/:id/edit" element={<PrintFormPage mode="edit" />} />
           <Route element={<AdminRoute />}>
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
           </Route>

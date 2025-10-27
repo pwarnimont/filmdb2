@@ -23,6 +23,8 @@ export interface FilmRollDto {
   filmFormat: string;
   exposures: number;
   isDeveloped: boolean;
+  isScanned: boolean;
+  scanFolder: string | null;
   createdAt: string;
   updatedAt: string;
   userId: string;
@@ -52,6 +54,8 @@ function toDto(record: Prisma.FilmRollGetPayload<{include: {development: true}}>
     filmFormat: filmFormatToApi[record.filmFormat],
     exposures: record.exposures,
     isDeveloped: record.isDeveloped,
+    isScanned: record.isScanned,
+    scanFolder: record.scanFolder ?? null,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     userId: record.userId,
@@ -143,6 +147,8 @@ class FilmRollService {
         filmFormat: parseFilmFormat(data.filmFormat),
         exposures: data.exposures,
         isDeveloped: data.isDeveloped ?? false,
+        isScanned: data.isScanned ?? false,
+        scanFolder: data.scanFolder ?? null,
         userId: user.id
       },
       include: {development: true}
@@ -169,7 +175,10 @@ class FilmRollService {
         cameraName: data.cameraName !== undefined ? data.cameraName ?? null : undefined,
         filmFormat: data.filmFormat ? parseFilmFormat(data.filmFormat) : undefined,
         exposures: data.exposures ?? undefined,
-        isDeveloped: data.isDeveloped ?? undefined
+        isDeveloped: data.isDeveloped ?? undefined,
+        isScanned: data.isScanned ?? undefined,
+        scanFolder:
+          data.scanFolder !== undefined ? (data.scanFolder ?? null) : undefined
       },
       include: {development: true}
     });

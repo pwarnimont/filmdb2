@@ -1,25 +1,49 @@
-import {createTheme} from '@mui/material/styles';
+import {createTheme, type ThemeOptions} from '@mui/material/styles';
+import type {PaletteMode} from '@mui/material';
 import '@mui/x-data-grid/themeAugmentation';
 
-const baseTheme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1f5130',
-      contrastText: '#f4f9f4'
-    },
-    secondary: {
-      main: '#4caf6f'
-    },
-    background: {
-      default: '#f2f6f2',
-      paper: '#ffffff'
-    },
-    text: {
-      primary: '#102618',
-      secondary: '#415347'
-    }
-  },
+const primary = {
+  main: '#1f5130',
+  contrastText: '#f4f9f4'
+};
+
+const secondary = {
+  main: '#4caf6f'
+};
+
+const getPalette = (mode: PaletteMode): ThemeOptions['palette'] =>
+  mode === 'light'
+    ? {
+        mode,
+        primary,
+        secondary,
+        background: {
+          default: '#f2f6f2',
+          paper: '#ffffff'
+        },
+        text: {
+          primary: '#102618',
+          secondary: '#415347'
+        }
+      }
+    : {
+        mode,
+        primary: {
+          ...primary,
+          main: '#81c784'
+        },
+        secondary,
+        background: {
+          default: '#0f1712',
+          paper: '#1b2a20'
+        },
+        text: {
+          primary: '#f5f9f6',
+          secondary: '#c2d5c8'
+        }
+      };
+
+const baseOptions: Omit<ThemeOptions, 'palette'> = {
   shape: {
     borderRadius: 2
   },
@@ -95,6 +119,12 @@ const baseTheme = createTheme({
       }
     }
   }
-});
+};
 
-export default baseTheme;
+export const createAppTheme = (mode: PaletteMode = 'light') =>
+  createTheme({
+    palette: getPalette(mode),
+    ...baseOptions
+  });
+
+export default createAppTheme('light');

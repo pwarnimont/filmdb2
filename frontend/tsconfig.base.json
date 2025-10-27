@@ -10,6 +10,7 @@
     "esModuleInterop": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "types": ["vite/client"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noEmit": true
   }
 }

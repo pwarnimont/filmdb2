@@ -9,7 +9,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
-import {Controller, useForm} from 'react-hook-form';
+import {Controller, useForm, useWatch} from 'react-hook-form';
 import {z} from 'zod';
 
 import type {FilmRollPayload} from '../types/api';
@@ -43,7 +43,13 @@ const schema = z.object({
     .number({invalid_type_error: 'Exposures must be a number'})
     .int('Exposures must be an integer')
     .positive('Exposures must be positive'),
-  isDeveloped: z.boolean().optional()
+  isDeveloped: z.boolean().optional(),
+  isScanned: z.boolean().optional(),
+  scanFolder: z
+    .string()
+    .max(255, 'Keep the folder name under 255 characters')
+    .optional()
+    .transform((value) => (value === undefined ? '' : value))
 });
 
 type FilmRollFormValues = z.infer<typeof schema>;
@@ -72,9 +78,12 @@ export function FilmRollForm({defaultValues, onSubmit, submitLabel = 'Save'}: Fi
       filmFormat: '35mm',
       exposures: 36,
       isDeveloped: false,
+      isScanned: false,
+      scanFolder: '',
       ...defaultValues
     }
   });
+  const isScanned = useWatch({control, name: 'isScanned', defaultValue: defaultValues?.isScanned ?? false});
 
   const onValid = handleSubmit(async (values) => {
     const payload: FilmRollPayload = {
@@ -86,7 +95,9 @@ export function FilmRollForm({defaultValues, onSubmit, submitLabel = 'Save'}: Fi
       cameraName: values.cameraName ?? null,
       filmFormat: values.filmFormat,
       exposures: values.exposures,
-      isDeveloped: values.isDeveloped
+      isDeveloped: values.isDeveloped,
+      isScanned: values.isScanned,
+      scanFolder: values.isScanned ? (values.scanFolder?.trim() ? values.scanFolder.trim() : null) : null
     };
 
     await onSubmit(payload);
@@ -178,6 +189,36 @@ export function FilmRollForm({defaultValues, onSubmit, submitLabel = 'Save'}: Fi
             />
           }
           label="Developed"
+        />
+        <FormControlLabel
+          control={
+            <Controller
+              control={control}
+              name="isScanned"
+              render={({field}) => <Switch color="primary" {...field} checked={field.value ?? false} />}
+            />
+          }
+          label="Scanned"
+        />
+        <Controller
+          control={control}
+          name="scanFolder"
+          render={({field}) => (
+            <TextField
+              label="Scan Folder"
+              fullWidth
+              {...field}
+              value={field.value ?? ''}
+              onChange={(event) => field.onChange(event.target.value)}
+              disabled={!isScanned}
+              error={!!errors.scanFolder && isScanned}
+              helperText={
+                isScanned
+                  ? errors.scanFolder?.message ?? 'Folder name for stored scans'
+                  : 'Enable “Scanned” to set a folder'
+              }
+            />
+          )}
         />
         <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
           {submitLabel}

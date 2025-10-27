@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import {PrismaClient, FilmFormat} from '@prisma/client';
+import {PrismaClient, FilmFormat, Prisma} from '@prisma/client';
 
 type SeedFilmRoll = {
   filmId: string;
@@ -11,6 +11,8 @@ type SeedFilmRoll = {
   filmFormat: FilmFormat;
   exposures: number;
   isDeveloped?: boolean;
+  isScanned?: boolean;
+  scanFolder?: string | null;
   development?: {
     developer: string;
     temperatureC: number;
@@ -19,6 +21,17 @@ type SeedFilmRoll = {
     dateDeveloped: Date;
     agitationScheme: string;
   };
+  prints?: Array<{
+    frameNumber: number;
+    paperType: string;
+    paperSize: string;
+    paperManufacturer: string;
+    developmentTimeSeconds: number;
+    fixingTimeSeconds: number;
+    washingTimeSeconds: number;
+    splitGradeInstructions?: string | null;
+    splitGradeSteps?: Array<{filter: string; exposureSeconds: number}>;
+  }>;
 };
 
 const prisma = new PrismaClient();
@@ -80,6 +93,8 @@ async function main() {
       filmFormat: FilmFormat.format35mm,
       exposures: 36,
       isDeveloped: true,
+      isScanned: true,
+      scanFolder: 'scans/2023/10',
       development: {
         developer: 'Kodak D-76',
         temperatureC: 20,
@@ -87,7 +102,38 @@ async function main() {
         timeSeconds: 600,
         dateDeveloped: new Date('2023-10-10'),
         agitationScheme: 'Initial 30s + 10s every minute'
-      }
+      },
+      prints: [
+        {
+          frameNumber: 12,
+          paperType: 'Ilford Multigrade RC',
+          paperSize: '8x10',
+          paperManufacturer: 'Ilford',
+          developmentTimeSeconds: 210,
+          fixingTimeSeconds: 120,
+          washingTimeSeconds: 300,
+          splitGradeInstructions: 'Soft filter first, dodge subject for 5 seconds',
+          splitGradeSteps: [
+            {filter: '00', exposureSeconds: 120},
+            {filter: '5', exposureSeconds: 90}
+          ]
+        },
+        {
+          frameNumber: 18,
+          paperType: 'Ilford Multigrade FB',
+          paperSize: '8x10',
+          paperManufacturer: 'Ilford',
+          developmentTimeSeconds: 180,
+          fixingTimeSeconds: 150,
+          washingTimeSeconds: 420,
+          splitGradeInstructions: 'Burn sky with filter 3 for 10s',
+          splitGradeSteps: [
+            {filter: '0', exposureSeconds: 90},
+            {filter: '3', exposureSeconds: 60},
+            {filter: '5', exposureSeconds: 45}
+          ]
+        }
+      ]
     },
     {
       filmId: 'HP5-120-014',
@@ -98,7 +144,8 @@ async function main() {
       cameraName: 'Mamiya RB67',
       filmFormat: FilmFormat.format6x7,
       exposures: 10,
-      isDeveloped: false
+      isDeveloped: false,
+      isScanned: false
     },
     {
       filmId: 'PORTRA-160-035',
@@ -109,7 +156,9 @@ async function main() {
       cameraName: null,
       filmFormat: FilmFormat.format35mm,
       exposures: 36,
-      isDeveloped: false
+      isDeveloped: false,
+      isScanned: true,
+      scanFolder: 'scans/2024/portra160-roll35'
     }
   ];
 
@@ -131,6 +180,8 @@ async function main() {
         filmFormat: roll.filmFormat,
         exposures: roll.exposures,
         isDeveloped: roll.isDeveloped ?? false,
+        isScanned: roll.isScanned ?? false,
+        scanFolder: roll.scanFolder ?? null,
         userId: regular.id
       }
     });
@@ -148,6 +199,25 @@ async function main() {
         }
       });
     }
+
+    if (roll.prints && roll.prints.length > 0) {
+      for (const print of roll.prints) {
+        await prisma.print.create({
+          data: {
+            filmRollId: created.id,
+            frameNumber: print.frameNumber,
+            paperType: print.paperType,
+            paperSize: print.paperSize,
+            paperManufacturer: print.paperManufacturer,
+            developmentTimeSeconds: print.developmentTimeSeconds,
+            fixingTimeSeconds: print.fixingTimeSeconds,
+            washingTimeSeconds: print.washingTimeSeconds,
+            splitGradeInstructions: print.splitGradeInstructions ?? null,
+            splitGradeSteps: toJsonSteps(print.splitGradeSteps)
+          }
+        });
+      }
+    }
   }
 
   console.log('Database seeded successfully');
@@ -161,3 +231,17 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+function toJsonSteps(
+  steps: Array<{filter: string; exposureSeconds: number}> | null | undefined
+): Prisma.InputJsonValue | Prisma.NullTypes.DbNull | undefined {
+  if (steps === undefined) {
+    return undefined;
+  }
+  if (steps === null || steps.length === 0) {
+    return Prisma.DbNull;
+  }
+  return steps.map((step) => ({
+    filter: step.filter,
+    exposureSeconds: step.exposureSeconds
+  })) as Prisma.InputJsonValue;
+}

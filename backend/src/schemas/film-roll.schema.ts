@@ -14,6 +14,19 @@ const optionalDate = z
 
 const requiredDate = z.string().datetime({offset: true}).transform((value) => new Date(value));
 
+const optionalTrimmedString = z
+  .union([z.string(), z.null(), z.undefined()])
+  .transform((value) => {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (value === null) {
+      return null;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  });
+
 export const filmRollCreateSchema = z.object({
   filmId: z.string().min(1),
   filmName: z.string().min(1),
@@ -23,7 +36,9 @@ export const filmRollCreateSchema = z.object({
   cameraName: z.string().optional().nullable(),
   filmFormat: z.enum(filmFormatValues),
   exposures: z.number().int().positive(),
-  isDeveloped: z.boolean().optional()
+  isDeveloped: z.boolean().optional(),
+  isScanned: z.boolean().optional(),
+  scanFolder: optionalTrimmedString.optional()
 });
 
 export const filmRollUpdateSchema = filmRollCreateSchema.partial();

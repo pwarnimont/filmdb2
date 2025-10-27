@@ -33,6 +33,8 @@ export interface FilmRoll {
   filmFormat: FilmFormat;
   exposures: number;
   isDeveloped: boolean;
+  isScanned: boolean;
+  scanFolder: string | null;
   createdAt: string;
   updatedAt: string;
   userId: string;
@@ -49,6 +51,8 @@ export interface FilmRollPayload {
   filmFormat: FilmFormat;
   exposures: number;
   isDeveloped?: boolean;
+  isScanned?: boolean;
+  scanFolder?: string | null;
 }
 
 export interface DevelopmentPayload {
@@ -62,6 +66,52 @@ export interface DevelopmentPayload {
 
 export interface PaginatedFilmRolls {
   items: FilmRoll[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface SplitGradeStep {
+  filter: string;
+  exposureSeconds: number;
+}
+
+export interface Print {
+  id: string;
+  filmRollId: string;
+  frameNumber: number;
+  paperType: string;
+  paperSize: string;
+  paperManufacturer: string;
+  developmentTimeSeconds: number;
+  fixingTimeSeconds: number;
+  washingTimeSeconds: number;
+  splitGradeInstructions: string | null;
+  splitGradeSteps: SplitGradeStep[] | null;
+  createdAt: string;
+  updatedAt: string;
+  filmRoll?: {
+    id: string;
+    filmName: string;
+    filmId: string;
+  };
+}
+
+export interface PrintPayload {
+  filmRollId: string;
+  frameNumber: number;
+  paperType: string;
+  paperSize: string;
+  paperManufacturer: string;
+  developmentTimeSeconds: number;
+  fixingTimeSeconds: number;
+  washingTimeSeconds: number;
+  splitGradeInstructions?: string | null;
+  splitGradeSteps?: SplitGradeStep[] | null;
+}
+
+export interface PaginatedPrints {
+  items: Print[];
   total: number;
   page: number;
   pageSize: number;
