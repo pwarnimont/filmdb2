@@ -254,6 +254,16 @@ class PrintService {
 
     await prisma.print.delete({where: {id}});
   }
+
+  async exportAll(user: UserRolePayload): Promise<PrintDto[]> {
+    const where: Prisma.PrintWhereInput =
+      user.role === 'ADMIN' ? {} : {filmRoll: {userId: user.id}};
+    const records = await prisma.print.findMany({
+      where,
+      orderBy: {createdAt: 'asc'}
+    });
+    return records.map((record) => toDto(record as PrintRecord));
+  }
 }
 
 export const printService = new PrintService();

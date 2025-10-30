@@ -21,6 +21,7 @@ import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import CloseIcon from '@mui/icons-material/Close';
 import {DataGrid, GridColDef, GridPaginationModel} from '@mui/x-data-grid';
+import {alpha, useTheme} from '@mui/material/styles';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useNavigate, useSearchParams} from 'react-router-dom';
 
@@ -50,6 +51,8 @@ function PrintListPage() {
   const [selectedPrintRow, setSelectedPrintRow] = useState<Print | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Print | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
   const {data: filmRollOptions = [], isLoading: filmRollLoading} = useFilmRollOptions();
 
@@ -319,10 +322,11 @@ function PrintListPage() {
       <Box
         sx={{
           width: '100%',
-          bgcolor: 'rgba(255,255,255,0.85)',
+          bgcolor: isDark ? alpha(theme.palette.background.paper, 0.85) : alpha('#ffffff', 0.9),
           borderRadius: {xs: 2, md: 2.5},
-          boxShadow: '0 18px 36px rgba(18, 46, 76, 0.08)',
-          backdropFilter: 'blur(4px)',
+          boxShadow: isDark ? '0 16px 32px rgba(5, 15, 10, 0.7)' : '0 18px 36px rgba(18, 46, 76, 0.08)',
+          border: `1px solid ${alpha(theme.palette.divider, isDark ? 0.4 : 0.12)}`,
+          backdropFilter: 'blur(6px)',
           p: {xs: 1.5, md: 2}
         }}
       >
@@ -341,14 +345,30 @@ function PrintListPage() {
           columns={columns}
           getRowId={(row) => row.id}
           sx={{
+            backgroundColor: 'transparent',
+            color: 'text.primary',
             '& .MuiDataGrid-columnHeaders': {
-              backgroundColor: 'rgba(63,139,88,0.12)',
-              fontWeight: 600
+              backgroundColor: isDark
+                ? alpha(theme.palette.success.main, 0.18)
+                : alpha(theme.palette.success.main, 0.12),
+              fontWeight: 600,
+              borderBottom: `1px solid ${alpha(theme.palette.divider, isDark ? 0.6 : 0.2)}`
+            },
+            '& .MuiDataGrid-footerContainer': {
+              backgroundColor: isDark
+                ? alpha(theme.palette.success.main, 0.14)
+                : alpha(theme.palette.success.main, 0.08),
+              borderTop: `1px solid ${alpha(theme.palette.divider, isDark ? 0.6 : 0.2)}`
             },
             '& .MuiDataGrid-row:hover': {
-              backgroundColor: 'rgba(31,81,48,0.08)'
+              backgroundColor: alpha(theme.palette.success.main, isDark ? 0.24 : 0.12)
             },
-            backgroundColor: 'transparent'
+            '& .MuiDataGrid-withBorderColor': {
+              borderColor: alpha(theme.palette.divider, isDark ? 0.6 : 0.18)
+            },
+            '& .MuiDataGrid-cell': {
+              borderColor: alpha(theme.palette.divider, isDark ? 0.6 : 0.18)
+            }
           }}
         />
       </Box>

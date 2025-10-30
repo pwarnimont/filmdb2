@@ -11,6 +11,7 @@ import {
 } from '../schemas/film-roll.schema';
 import type {UserRolePayload} from '../types/user';
 import {filmFormatToApi, parseFilmFormat} from '../utils/film-format';
+import type {PrintDto} from './print.service';
 
 export interface FilmRollDto {
   id: string;
@@ -29,6 +30,7 @@ export interface FilmRollDto {
   updatedAt: string;
   userId: string;
   development?: DevelopmentDto;
+  prints?: PrintDto[];
 }
 
 export interface DevelopmentDto {
@@ -296,6 +298,16 @@ class FilmRollService {
     if (!roll || roll.userId !== user.id) {
       throw createHttpError(404, 'Film roll not found');
     }
+  }
+
+  async exportAll(user: UserRolePayload): Promise<FilmRollDto[]> {
+    const where: Prisma.FilmRollWhereInput = user.role === 'ADMIN' ? {} : {userId: user.id};
+    const records = await prisma.filmRoll.findMany({
+      where,
+      include: {development: true},
+      orderBy: {createdAt: 'asc'}
+    });
+    return records.map(toDto);
   }
 }
 

@@ -1,5 +1,5 @@
-import {useMemo, useState} from 'react';
-import type {ReactNode} from 'react';
+import {useMemo, useRef, useState} from 'react';
+import type {ChangeEvent, ReactNode} from 'react';
 import {
   Box,
   Button,
@@ -19,12 +19,15 @@ import {
   Typography
 } from '@mui/material';
 import {DataGrid, GridColDef, GridPaginationModel, GridSortModel} from '@mui/x-data-grid';
+import {alpha, useTheme} from '@mui/material/styles';
+import DownloadIcon from '@mui/icons-material/DownloadOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
 import CheckIcon from '@mui/icons-material/CheckCircleOutline';
 import CloseIcon from '@mui/icons-material/Close';
 import PrintIcon from '@mui/icons-material/PrintOutlined';
+import UploadIcon from '@mui/icons-material/UploadOutlined';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useNavigate} from 'react-router-dom';
 
@@ -34,7 +37,13 @@ import {
   markDeveloped,
   type FilmRollFilters
 } from '../api/filmRolls';
-import type {FilmRoll, PaginatedFilmRolls} from '../types/api';
+import {exportBackup, importBackup} from '../api/backups';
+import type {
+  BackupImportPayload,
+  FilmRoll,
+  PaginatedFilmRolls,
+  Print
+} from '../types/api';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {DevelopmentForm} from '../components/DevelopmentForm';
 import {useSnackbar} from '../providers/SnackbarProvider';
@@ -54,6 +63,97 @@ function FilmRollListPage() {
   const snackbar = useSnackbar();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleExportBackup = async () => {
+    try {
+      const snapshot = await exportBackup();
+      const timestamp = new Date(snapshot.generatedAt ?? new Date().toISOString())
+        .toISOString()
+        .replace(/[:.]/g, '-');
+      const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `film-manager-backup-${timestamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      snackbar.showMessage('Backup exported', 'success');
+    } catch (error) {
+      console.error(error);
+      snackbar.showMessage('Could not export backup', 'error');
+    }
+  };
+
+  const handleImportBackupClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportBackupSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      const raw = await file.text();
+      const parsed = JSON.parse(raw) as Partial<BackupImportPayload> & {
+        generatedAt?: string;
+      };
+
+      if (!Array.isArray(parsed.filmRolls)) {
+        throw new Error('Invalid backup structure');
+      }
+
+      const filmRolls = parsed.filmRolls as FilmRoll[];
+      const printMap = new Map<string, Print>();
+
+      for (const roll of filmRolls) {
+        if (Array.isArray(roll.prints)) {
+          for (const nestedPrint of roll.prints) {
+            printMap.set(nestedPrint.id, nestedPrint);
+          }
+        }
+      }
+
+      if (Array.isArray(parsed.prints)) {
+        for (const print of parsed.prints as Print[]) {
+          printMap.set(print.id, print);
+        }
+      }
+
+      const payload: BackupImportPayload = {
+        filmRolls,
+        prints: Array.from(printMap.values())
+      };
+
+      const summary = await importBackup(payload);
+      const filmRollTotal = summary.filmRollsCreated + summary.filmRollsUpdated;
+      const printTotal = summary.printsCreated + summary.printsUpdated;
+
+      snackbar.showMessage(
+        `Imported ${filmRollTotal} film rolls and ${printTotal} prints`,
+        'success'
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({queryKey: ['film-rolls']}),
+        queryClient.invalidateQueries({queryKey: ['film-rolls', 'stats']}),
+        queryClient.invalidateQueries({queryKey: ['prints']})
+      ]);
+    } catch (error) {
+      console.error(error);
+      snackbar.showMessage('Could not import backup. Please verify the file.', 'error');
+    } finally {
+      event.target.value = '';
+    }
+  };
 
   const filters = useMemo<FilmRollFilters>(() => {
     const base: FilmRollFilters = {
@@ -270,17 +370,45 @@ function FilmRollListPage() {
 
   return (
     <Stack spacing={3} sx={{color: 'text.primary'}}>
-      <Stack direction={{xs: 'column', md: 'row'}} spacing={2} alignItems={{md: 'center'}}>
-        <Typography variant="h4" sx={{flexGrow: 1}}>
-          Film Rolls
-        </Typography>
-        <Button variant="contained" onClick={() => navigate('/film-rolls/new')}>
-          Add Film Roll
-        </Button>
-        <Button variant="outlined" onClick={() => navigate('/prints/new')}>
-          Record Print
-        </Button>
+      <Stack spacing={2}>
+        <Stack
+          direction={{xs: 'column', md: 'row'}}
+          spacing={2}
+          alignItems={{xs: 'flex-start', md: 'center'}}
+          justifyContent="space-between"
+        >
+          <Typography variant="h4">Film Rolls</Typography>
+          <Stack direction={{xs: 'column', sm: 'row'}} spacing={1.5}>
+            <Button variant="contained" onClick={() => navigate('/film-rolls/new')}>
+              Add Film Roll
+            </Button>
+            <Button variant="outlined" onClick={() => navigate('/prints/new')}>
+              Record Print
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={handleExportBackup}
+            >
+              Export Backup
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<UploadIcon />}
+              onClick={handleImportBackupClick}
+            >
+              Import Backup
+            </Button>
+          </Stack>
+        </Stack>
       </Stack>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json"
+        onChange={handleImportBackupSelected}
+        hidden
+      />
       <StatisticsStrip stats={stats} loading={statsLoading} />
       <Stack direction={{xs: 'column', md: 'row'}} spacing={2} alignItems={{md: 'center'}}>
         <TextField
@@ -305,10 +433,11 @@ function FilmRollListPage() {
       <Box
         sx={{
           width: '100%',
-          bgcolor: 'rgba(255,255,255,0.85)',
+          bgcolor: isDark ? alpha(theme.palette.background.paper, 0.85) : alpha('#ffffff', 0.9),
           borderRadius: {xs: 2, md: 2.5},
-          boxShadow: '0 18px 36px rgba(18, 46, 76, 0.08)',
-          backdropFilter: 'blur(4px)',
+          boxShadow: isDark ? '0 16px 32px rgba(5, 15, 10, 0.7)' : '0 18px 36px rgba(18, 46, 76, 0.08)',
+          border: `1px solid ${alpha(theme.palette.divider, isDark ? 0.4 : 0.12)}`,
+          backdropFilter: 'blur(6px)',
           p: {xs: 1.5, md: 2}
         }}
       >
@@ -329,14 +458,30 @@ function FilmRollListPage() {
           getRowId={(row) => row.id}
           onRowClick={({row}) => setSelectedForDetails(row)}
           sx={{
+            backgroundColor: 'transparent',
+            color: 'text.primary',
             '& .MuiDataGrid-columnHeaders': {
-              backgroundColor: 'rgba(29,53,87,0.08)',
-              fontWeight: 600
+              backgroundColor: isDark
+                ? alpha(theme.palette.secondary.main, 0.18)
+                : alpha(theme.palette.primary.main, 0.08),
+              fontWeight: 600,
+              borderBottom: `1px solid ${alpha(theme.palette.divider, isDark ? 0.6 : 0.2)}`
+            },
+            '& .MuiDataGrid-footerContainer': {
+              backgroundColor: isDark
+                ? alpha(theme.palette.secondary.main, 0.14)
+                : alpha(theme.palette.primary.main, 0.06),
+              borderTop: `1px solid ${alpha(theme.palette.divider, isDark ? 0.6 : 0.2)}`
             },
             '& .MuiDataGrid-row:hover': {
-              backgroundColor: 'rgba(58,110,165,0.08)'
+              backgroundColor: alpha(theme.palette.secondary.main, isDark ? 0.24 : 0.12)
             },
-            backgroundColor: 'transparent'
+            '& .MuiDataGrid-withBorderColor': {
+              borderColor: alpha(theme.palette.divider, isDark ? 0.6 : 0.18)
+            },
+            '& .MuiDataGrid-cell': {
+              borderColor: alpha(theme.palette.divider, isDark ? 0.6 : 0.18)
+            }
           }}
         />
       </Box>

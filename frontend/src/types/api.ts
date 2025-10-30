@@ -39,6 +39,7 @@ export interface FilmRoll {
   updatedAt: string;
   userId: string;
   development?: Development;
+  prints?: Print[];
 }
 
 export interface FilmRollPayload {
@@ -115,6 +116,24 @@ export interface PaginatedPrints {
   total: number;
   page: number;
   pageSize: number;
+}
+
+export interface BackupSnapshot {
+  generatedAt: string;
+  filmRolls: FilmRoll[];
+  prints: Print[];
+}
+
+export interface BackupImportPayload {
+  filmRolls: FilmRoll[];
+  prints?: Print[];
+}
+
+export interface BackupImportSummary {
+  filmRollsCreated: number;
+  filmRollsUpdated: number;
+  printsCreated: number;
+  printsUpdated: number;
 }
 
 export interface ApiError {

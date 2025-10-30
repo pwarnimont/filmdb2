@@ -1,18 +1,22 @@
 import {
-  AppBar,
   Box,
-  Button,
-  Container,
-  IconButton,
+  Divider,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
   Stack,
-  Toolbar,
-  Tooltip,
   Typography
 } from '@mui/material';
 import {alpha, useTheme} from '@mui/material/styles';
 import {useContext} from 'react';
 import DarkModeIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeIcon from '@mui/icons-material/LightModeOutlined';
+import MovieFilterIcon from '@mui/icons-material/MovieFilterOutlined';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
+import LogoutIcon from '@mui/icons-material/LogoutOutlined';
+import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshopOutlined';
 import {Outlet, useLocation, useNavigate} from 'react-router-dom';
 
 import ThemeModeContext from '../contexts/ThemeModeContext';
@@ -48,12 +52,37 @@ export function AppLayout() {
   }
 
   const isActive = (path: string) => location.pathname.startsWith(path);
+  const drawerWidth = 272;
+
+  const navItems: Array<{
+    label: string;
+    path: string;
+    icon: JSX.Element;
+  }> = [
+    {
+      label: 'Film Rolls',
+      path: '/film-rolls',
+      icon: <MovieFilterIcon />
+    },
+    {
+      label: 'Prints',
+      path: '/prints',
+      icon: <LocalPrintshopIcon />
+    }
+  ];
+
+  if (user.role === 'ADMIN') {
+    navItems.push({
+      label: 'Admin Settings',
+      path: '/admin/settings',
+      icon: <AdminPanelSettingsIcon />
+    });
+  }
 
   return (
     <Box
       sx={{
         display: 'flex',
-        flexDirection: 'column',
         minHeight: '100vh',
         background:
           theme.palette.mode === 'light'
@@ -61,128 +90,146 @@ export function AppLayout() {
             : theme.palette.background.default
       }}
     >
-      <AppBar
-        position="static"
-        color="primary"
-        elevation={0}
+      <Drawer
+        variant="permanent"
         sx={{
-          background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`
+          width: drawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            borderRight: `1px solid ${alpha(theme.palette.common.black, isDark ? 0.4 : 0.08)}`,
+            backgroundColor: alpha(theme.palette.background.paper, isDark ? 0.98 : 0.96),
+            display: 'flex',
+            flexDirection: 'column',
+            py: 3,
+            px: 2.5,
+            gap: 2
+          }
         }}
       >
-        <Toolbar sx={{py: 1.5}}>
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={1.5}
-            sx={{flexGrow: 1, cursor: 'pointer'}}
-            onClick={handleNavigate('/film-rolls')}
-          >
-            <Box
-              component="img"
-              src={logoUrl}
-              alt="Film Manager logo"
-              sx={{width: 36, height: 36, borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.18)'}}
-            />
-            <Typography variant="h6" sx={{fontWeight: 700, letterSpacing: '0.04em'}}>
-              Film Manager
-            </Typography>
-          </Stack>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Button
-              color="inherit"
-              sx={{
-                color: isActive('/film-rolls') ? theme.palette.secondary.light : 'inherit',
-                fontWeight: isActive('/film-rolls') ? 600 : 500,
-                backgroundColor: activeBackground(isActive('/film-rolls')),
-                '&:hover': {
-                  backgroundColor: activeHover(isActive('/film-rolls'))
-                }
-              }}
-              onClick={handleNavigate('/film-rolls')}
-            >
-              Film Rolls
-            </Button>
-            <Button
-              color="inherit"
-              sx={{
-                color: isActive('/prints') ? theme.palette.secondary.light : 'inherit',
-                fontWeight: isActive('/prints') ? 600 : 500,
-                backgroundColor: activeBackground(isActive('/prints')),
-                '&:hover': {
-                  backgroundColor: activeHover(isActive('/prints'))
-                }
-              }}
-              onClick={handleNavigate('/prints')}
-            >
-              Prints
-            </Button>
-            {user.role === 'ADMIN' && (
-              <Button
-                color="inherit"
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.5}
+          sx={{cursor: 'pointer', px: 1}}
+          onClick={handleNavigate('/film-rolls')}
+        >
+          <Box
+            component="img"
+            src={logoUrl}
+            alt="Film Manager logo"
+            sx={{width: 40, height: 40, borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.18)'}}
+          />
+          <Typography variant="h6" sx={{fontWeight: 700, letterSpacing: '0.04em'}}>
+            Film Manager
+          </Typography>
+        </Stack>
+        <List sx={{px: 0}}>
+          {navItems.map((item) => {
+            const active = isActive(item.path);
+            return (
+              <ListItemButton
+                key={item.path}
+                selected={active}
+                onClick={handleNavigate(item.path)}
                 sx={{
-                  color: isActive('/admin') ? theme.palette.secondary.light : 'inherit',
-                  fontWeight: isActive('/admin') ? 600 : 500,
-                  backgroundColor: activeBackground(isActive('/admin')),
+                  borderRadius: 2,
+                  mb: 0.5,
+                  color: active ? theme.palette.secondary.main : 'text.primary',
+                  backgroundColor: activeBackground(active),
                   '&:hover': {
-                    backgroundColor: activeHover(isActive('/admin'))
+                    backgroundColor: activeHover(active)
                   }
                 }}
-                onClick={handleNavigate('/admin/settings')}
               >
-                Admin Settings
-              </Button>
-            )}
-            <Tooltip title={`Switch to ${isDark ? 'light' : 'dark'} mode`}>
-              <IconButton color="inherit" onClick={toggle} sx={{ml: 0.5}}>
-                {isDark ? <LightModeIcon /> : <DarkModeIcon />}
-              </IconButton>
-            </Tooltip>
-            <Stack spacing={0.25} sx={{mx: 1, minWidth: 120, textAlign: 'right'}}>
-              <Typography variant="body2" fontWeight={600} color="inherit">
-                {user.firstName} {user.lastName}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{color: alpha(theme.palette.common.white, 0.72)}}
-              >
-                {user.email}
-              </Typography>
-            </Stack>
-            <Button color="inherit" onClick={handleLogout}>
-              Logout
-            </Button>
+                <ListItemIcon
+                  sx={{
+                    color: active ? theme.palette.secondary.main : 'inherit',
+                    minWidth: 36
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            );
+          })}
+        </List>
+        <Box sx={{flexGrow: 1}} />
+        <Divider sx={{borderColor: alpha(theme.palette.common.black, isDark ? 0.4 : 0.12)}} />
+        <Stack spacing={1.25} sx={{pt: 2, px: 1}}>
+          <Stack spacing={0.25}>
+            <Typography variant="body2" fontWeight={600}>
+              {user.firstName} {user.lastName}
+            </Typography>
+            <Typography variant="caption" sx={{color: alpha(theme.palette.text.primary, 0.7)}}>
+              {user.email}
+            </Typography>
           </Stack>
-        </Toolbar>
-      </AppBar>
-      <Container
-        maxWidth={false}
-        sx={{
-          py: {xs: 3, sm: 5},
-          px: {xs: 2, sm: 4, md: 6},
-        flexGrow: 1,
-        width: '100%',
-        boxSizing: 'border-box',
-        display: 'flex',
-        flexDirection: 'column'
-      }}
-    >
+          <List sx={{p: 0}}>
+            <ListItemButton
+              onClick={toggle}
+              sx={{
+                borderRadius: 2,
+                mb: 0.5,
+                color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main'
+              }}
+            >
+              <ListItemIcon sx={{minWidth: 36, color: 'inherit'}}>
+                {isDark ? <LightModeIcon /> : <DarkModeIcon />}
+              </ListItemIcon>
+              <ListItemText primary={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`} />
+            </ListItemButton>
+            <ListItemButton
+              onClick={handleLogout}
+              sx={{
+                borderRadius: 2,
+                color: theme.palette.error.main,
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.error.main, 0.08)
+                }
+              }}
+            >
+              <ListItemIcon sx={{minWidth: 36, color: 'inherit'}}>
+                <LogoutIcon />
+              </ListItemIcon>
+              <ListItemText primary="Logout" />
+            </ListItemButton>
+          </List>
+        </Stack>
+      </Drawer>
       <Box
+        component="main"
         sx={{
           flexGrow: 1,
-          backgroundColor: alpha(theme.palette.background.paper, isDark ? 0.92 : 0.9),
-          borderRadius: {xs: 2, md: 3},
-          boxShadow:
-            theme.palette.mode === 'light'
-              ? '0 18px 36px rgba(23, 66, 41, 0.12)'
-              : '0 18px 36px rgba(5, 15, 10, 0.6)',
-          px: {xs: 2.5, sm: 4, md: 6},
-          py: {xs: 3, sm: 4},
-          backdropFilter: 'blur(4px)'
+          display: 'flex',
+          flexDirection: 'column',
+          py: {xs: 3, sm: 5},
+          px: {xs: 3, sm: 6},
+          boxSizing: 'border-box'
         }}
       >
+        <Box
+          sx={{
+            flexGrow: 1,
+            width: '100%',
+            maxWidth: 1440,
+            mx: 'auto',
+            backgroundColor: alpha(theme.palette.background.paper, isDark ? 0.92 : 0.9),
+            borderRadius: {xs: 2, md: 3},
+            boxShadow:
+              theme.palette.mode === 'light'
+                ? '0 18px 36px rgba(23, 66, 41, 0.12)'
+                : '0 18px 36px rgba(5, 15, 10, 0.6)',
+            px: {xs: 2.5, sm: 4, md: 6},
+            py: {xs: 3, sm: 4},
+            backdropFilter: 'blur(4px)'
+          }}
+        >
           <Outlet />
         </Box>
-      </Container>
+      </Box>
     </Box>
   );
 }
