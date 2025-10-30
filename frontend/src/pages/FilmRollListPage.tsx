@@ -24,6 +24,7 @@ import EditIcon from '@mui/icons-material/EditOutlined';
 import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
 import CheckIcon from '@mui/icons-material/CheckCircleOutline';
 import CloseIcon from '@mui/icons-material/Close';
+import PrintIcon from '@mui/icons-material/PrintOutlined';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useNavigate} from 'react-router-dom';
 
@@ -183,6 +184,22 @@ function FilmRollListPage() {
         valueGetter: (params) => ((params.value as boolean) ? 'Yes' : 'No')
       },
       {
+        field: 'isScanned',
+        headerName: 'Scanned',
+        width: 140,
+        sortable: false,
+        renderCell: ({row}) =>
+          row.isScanned ? (
+            <Tooltip title={row.scanFolder ?? 'Scans available'}>
+              <Typography variant="body2" component="span">
+                {row.scanFolder ? `Yes (${row.scanFolder})` : 'Yes'}
+              </Typography>
+            </Tooltip>
+          ) : (
+            'No'
+          )
+      },
+      {
         field: 'actions',
         headerName: 'Actions',
         sortable: false,
@@ -223,6 +240,17 @@ function FilmRollListPage() {
                 </IconButton>
               </span>
             </Tooltip>
+            <Tooltip title="Record print from this roll">
+              <IconButton
+                aria-label="Record print"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  navigate(`/prints/new?filmRollId=${row.id}`);
+                }}
+              >
+                <PrintIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
             <IconButton
               color="error"
               aria-label="Delete"
@@ -248,6 +276,9 @@ function FilmRollListPage() {
         </Typography>
         <Button variant="contained" onClick={() => navigate('/film-rolls/new')}>
           Add Film Roll
+        </Button>
+        <Button variant="outlined" onClick={() => navigate('/prints/new')}>
+          Record Print
         </Button>
       </Stack>
       <StatisticsStrip stats={stats} loading={statsLoading} />
@@ -450,6 +481,12 @@ function FilmRollDetailsPanel({
           <InfoRow label="Date Shot" value={formatDate(film.dateShot)} />
           <InfoRow label="Camera" value={film.cameraName ?? '—'} />
           <InfoRow label="Developed" value={film.isDeveloped ? 'Yes' : 'No'} />
+          <InfoRow
+            label="Scanned"
+            value={
+              film.isScanned ? (film.scanFolder ? `Yes – ${film.scanFolder}` : 'Yes') : 'No'
+            }
+          />
           <InfoRow label="Created" value={formatDate(film.createdAt)} />
           <InfoRow label="Updated" value={formatDate(film.updatedAt)} />
         </InfoSection>
@@ -512,25 +549,31 @@ function StatisticsStrip({
     | undefined;
   loading: boolean;
 }) {
-  const cards: Array<{label: string; value: string | number; helper?: string; accent: string; text: string}> = [
+  const cards: Array<{
+    label: string;
+    value: string | number;
+    helper?: string;
+    background: string;
+    border: string;
+  }> = [
     {
       label: 'Total Rolls',
       value: stats?.total ?? '—',
-      accent: 'linear-gradient(135deg, #1d3557 0%, #3a6ea5 100%)',
-      text: '#f1f5fb'
+      background: 'rgba(29, 53, 87, 0.06)',
+      border: '1px solid rgba(29, 53, 87, 0.12)'
     },
     {
       label: 'Developed',
       value: stats?.developed ?? '—',
       helper: stats ? `${stats.developedPercentage}% of collection` : undefined,
-      accent: 'linear-gradient(135deg, #2a9d8f 0%, #5ed5c0 100%)',
-      text: '#f0fffa'
+      background: 'rgba(42, 157, 143, 0.08)',
+      border: '1px solid rgba(42, 157, 143, 0.16)'
     },
     {
       label: 'Undeveloped',
       value: stats?.undeveloped ?? '—',
-      accent: 'linear-gradient(135deg, #e63946 0%, #f77f93 100%)',
-      text: '#fff5f6'
+      background: 'rgba(230, 57, 70, 0.06)',
+      border: '1px solid rgba(230, 57, 70, 0.12)'
     }
   ];
 
@@ -545,24 +588,24 @@ function StatisticsStrip({
             px: {xs: 2.5, md: 3},
             py: {xs: 2, md: 2.5},
             borderRadius: 2.5,
-            border: 'none',
-            background: card.accent,
-            color: card.text,
-            boxShadow: '0 18px 28px rgba(18, 46, 76, 0.14)'
+            border: card.border,
+            backgroundColor: card.background,
+            color: 'text.primary',
+            boxShadow: 'none'
           }}
         >
           {loading ? (
-            <Skeleton variant="rectangular" height={64} sx={{bgcolor: 'rgba(255,255,255,0.35)'}} />
+            <Skeleton variant="rectangular" height={64} sx={{bgcolor: 'rgba(255,255,255,0.4)'}} />
           ) : (
             <Stack spacing={0.5}>
-              <Typography variant="overline" sx={{letterSpacing: 1.2, color: 'inherit'}}>
+              <Typography variant="overline" sx={{letterSpacing: 1.2, color: 'text.secondary'}}>
                 {card.label}
               </Typography>
-              <Typography variant="h5" fontWeight={700} color="inherit">
+              <Typography variant="h5" fontWeight={700} color="text.primary">
                 {card.value}
               </Typography>
               {card.helper && (
-                <Typography variant="caption" sx={{color: 'rgba(255,255,255,0.8)'}}>
+                <Typography variant="caption" sx={{color: 'text.secondary'}}>
                   {card.helper}
                 </Typography>
               )}

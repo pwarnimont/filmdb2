@@ -58,7 +58,9 @@ function FilmRollFormPage({mode}: FilmRollFormPageProps) {
       cameraName: data.cameraName ?? '',
       filmFormat: data.filmFormat,
       exposures: data.exposures,
-      isDeveloped: data.isDeveloped
+      isDeveloped: data.isDeveloped,
+      isScanned: data.isScanned,
+      scanFolder: data.scanFolder ?? ''
     } as const;
   }, [data]);
 

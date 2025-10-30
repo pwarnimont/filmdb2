@@ -141,6 +141,10 @@ function FilmRollDetailPage() {
               <InfoRow label="Date Shot" value={formatDate(film.dateShot)} />
               <InfoRow label="Camera" value={film.cameraName ?? '—'} />
               <InfoRow label="Developed" value={film.isDeveloped ? 'Yes' : 'No'} />
+              <InfoRow
+                label="Scanned"
+                value={film.isScanned ? (film.scanFolder ? `Yes – ${film.scanFolder}` : 'Yes') : 'No'}
+              />
               <InfoRow label="Created" value={formatDate(film.createdAt)} />
               <InfoRow label="Last Updated" value={formatDate(film.updatedAt)} />
             </Grid>
