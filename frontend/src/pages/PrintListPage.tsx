@@ -452,6 +452,8 @@ function PrintDetailsPanel({
   onDelete: () => void;
   onOpenFilmRoll: () => void;
 }) {
+  const theme = useTheme();
+
   return (
     <Box sx={{display: 'flex', flexDirection: 'column', height: '100%'}}>
       <Box
