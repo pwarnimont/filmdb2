@@ -21,8 +21,6 @@ import {Outlet, useLocation, useNavigate} from 'react-router-dom';
 
 import ThemeModeContext from '../contexts/ThemeModeContext';
 import {useAuth} from '../providers/AuthProvider';
-import logoUrl from '../assets/film-manager-logo.svg';
-
 export function AppLayout() {
   const {user, logout} = useAuth();
   const navigate = useNavigate();
@@ -117,7 +115,7 @@ export function AppLayout() {
         >
           <Box
             component="img"
-            src={logoUrl}
+            src="/icon.png"
             alt="Film Manager logo"
             sx={{width: 40, height: 40, borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.18)'}}
           />
@@ -159,7 +157,7 @@ export function AppLayout() {
         <Box sx={{flexGrow: 1}} />
         <Divider sx={{borderColor: alpha(theme.palette.common.black, isDark ? 0.4 : 0.12)}} />
         <Stack spacing={1.25} sx={{pt: 2, px: 1}}>
-          <Stack spacing={0.25}>
+          <Stack spacing={0.25} sx={{alignItems: 'center', textAlign: 'center'}}>
             <Typography variant="body2" fontWeight={600}>
               {user.firstName} {user.lastName}
             </Typography>
