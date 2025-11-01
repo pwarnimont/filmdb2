@@ -30,6 +30,7 @@ import type {PaginatedPrints, Print} from '../types/api';
 import {useFilmRollOptions} from '../hooks/useFilmRollOptions';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {useSnackbar} from '../providers/SnackbarProvider';
+import {getSplitGradeChipStyles} from '../utils/splitGradeColors';
 
 function formatSeconds(value: number) {
   const minutes = Math.floor(value / 60)
@@ -541,8 +542,8 @@ function PrintDetailsPanel({
                     <Chip
                       key={`${step.filter}-${index}`}
                       label={`${step.filter}: ${formatSeconds(step.exposureSeconds)}`}
-                      color="primary"
-                      variant="outlined"
+                      variant="filled"
+                      sx={getSplitGradeChipStyles(step.filter, theme)}
                     />
                   ))}
                 </Stack>

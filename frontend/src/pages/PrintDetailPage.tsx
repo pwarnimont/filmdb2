@@ -12,6 +12,7 @@ import {
   Stack,
   Typography
 } from '@mui/material';
+import {useTheme} from '@mui/material/styles';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useNavigate, useParams} from 'react-router-dom';
 
@@ -19,6 +20,7 @@ import {deletePrint, getPrint} from '../api/prints';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {useSnackbar} from '../providers/SnackbarProvider';
 import type {Print} from '../types/api';
+import {getSplitGradeChipStyles} from '../utils/splitGradeColors';
 
 function formatTime(value: number) {
   const minutes = Math.floor(value / 60)
@@ -36,6 +38,7 @@ function PrintDetailPage() {
   const snackbar = useSnackbar();
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const theme = useTheme();
 
   const {
     data: print,
@@ -136,8 +139,8 @@ function PrintDetailPage() {
                     <Chip
                       key={`${step.filter}-${index}`}
                       label={`${step.filter}: ${formatTime(step.exposureSeconds)}`}
-                      color="primary"
-                      variant="outlined"
+                      variant="filled"
+                      sx={getSplitGradeChipStyles(step.filter, theme)}
                     />
                   ))}
                 </Stack>
