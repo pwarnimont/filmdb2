@@ -1,22 +1,27 @@
 import {
+  AppBar,
   Box,
   Divider,
   Drawer,
+  IconButton,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   Stack,
-  Typography
+  Toolbar,
+  Typography,
+  useMediaQuery
 } from '@mui/material';
 import {alpha, useTheme} from '@mui/material/styles';
-import {useContext} from 'react';
+import {useContext, useState} from 'react';
 import DarkModeIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeIcon from '@mui/icons-material/LightModeOutlined';
 import MovieFilterIcon from '@mui/icons-material/MovieFilterOutlined';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
 import LogoutIcon from '@mui/icons-material/LogoutOutlined';
 import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshopOutlined';
+import MenuIcon from '@mui/icons-material/MenuOutlined';
 import {Outlet, useLocation, useNavigate} from 'react-router-dom';
 
 import ThemeModeContext from '../contexts/ThemeModeContext';
@@ -26,6 +31,9 @@ export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const isMobile = !isDesktop;
+  const [mobileOpen, setMobileOpen] = useState(false);
   const {mode, toggle} = useContext(ThemeModeContext);
 
   const isDark = mode === 'dark';
@@ -38,10 +46,20 @@ export function AppLayout() {
 
   const handleNavigate = (path: string) => () => {
     navigate(path);
+    if (!isDesktop) {
+      setMobileOpen(false);
+    }
+  };
+
+  const handleDrawerToggle = () => {
+    setMobileOpen((prev) => !prev);
   };
 
   const handleLogout = async () => {
     await logout();
+    if (!isDesktop) {
+      setMobileOpen(false);
+    }
     navigate('/login');
   };
 
@@ -51,6 +69,17 @@ export function AppLayout() {
 
   const isActive = (path: string) => location.pathname.startsWith(path);
   const drawerWidth = 272;
+  const drawerPaperStyles = {
+    width: drawerWidth,
+    boxSizing: 'border-box',
+    borderRight: `1px solid ${alpha(theme.palette.common.black, isDark ? 0.4 : 0.08)}`,
+    backgroundColor: alpha(theme.palette.background.paper, isDark ? 0.98 : 0.96),
+    display: 'flex',
+    flexDirection: 'column',
+    py: 3,
+    px: 2.5,
+    gap: 2
+  };
 
   const navItems: Array<{
     label: string;
@@ -77,6 +106,101 @@ export function AppLayout() {
     });
   }
 
+  const drawerContent = (
+    <Stack spacing={2} sx={{height: '100%'}}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1.5}
+        sx={{cursor: 'pointer', px: 1}}
+        onClick={handleNavigate('/film-rolls')}
+      >
+        <Box
+          component="img"
+          src="/icon.png"
+          alt="Film Manager logo"
+          sx={{width: 40, height: 40, borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.18)'}}
+        />
+        <Typography variant="h6" sx={{fontWeight: 700, letterSpacing: '0.04em'}}>
+          Film Manager
+        </Typography>
+      </Stack>
+      <List sx={{px: 0}}>
+        {navItems.map((item) => {
+          const active = isActive(item.path);
+          return (
+            <ListItemButton
+              key={item.path}
+              selected={active}
+              onClick={handleNavigate(item.path)}
+              sx={{
+                borderRadius: 2,
+                mb: 0.5,
+                color: active ? theme.palette.secondary.main : 'text.primary',
+                backgroundColor: activeBackground(active),
+                '&:hover': {
+                  backgroundColor: activeHover(active)
+                }
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  color: active ? theme.palette.secondary.main : 'inherit',
+                  minWidth: 36
+                }}
+              >
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          );
+        })}
+      </List>
+      <Box sx={{flexGrow: 1}} />
+      <Divider sx={{borderColor: alpha(theme.palette.common.black, isDark ? 0.4 : 0.12)}} />
+      <Stack spacing={1.25} sx={{pt: 2, px: 1}}>
+        <Stack spacing={0.25} sx={{alignItems: 'center', textAlign: 'center'}}>
+          <Typography variant="body2" fontWeight={600}>
+            {user.firstName} {user.lastName}
+          </Typography>
+          <Typography variant="caption" sx={{color: alpha(theme.palette.text.primary, 0.7)}}>
+            {user.email}
+          </Typography>
+        </Stack>
+        <List sx={{p: 0}}>
+          <ListItemButton
+            onClick={toggle}
+            sx={{
+              borderRadius: 2,
+              mb: 0.5,
+              color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main'
+            }}
+          >
+            <ListItemIcon sx={{minWidth: 36, color: 'inherit'}}>
+              {isDark ? <LightModeIcon /> : <DarkModeIcon />}
+            </ListItemIcon>
+            <ListItemText primary={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`} />
+          </ListItemButton>
+          <ListItemButton
+            onClick={handleLogout}
+            sx={{
+              borderRadius: 2,
+              color: theme.palette.error.main,
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.error.main, 0.08)
+              }
+            }}
+          >
+            <ListItemIcon sx={{minWidth: 36, color: 'inherit'}}>
+              <LogoutIcon />
+            </ListItemIcon>
+            <ListItemText primary="Logout" />
+          </ListItemButton>
+        </List>
+      </Stack>
+    </Stack>
+  );
+
   return (
     <Box
       sx={{
@@ -88,114 +212,72 @@ export function AppLayout() {
             : theme.palette.background.default
       }}
     >
+      {isMobile && (
+        <AppBar
+          position="fixed"
+          elevation={0}
+          sx={{
+            display: {xs: 'flex', md: 'none'},
+            backgroundColor: alpha(theme.palette.background.paper, isDark ? 0.92 : 0.9),
+            borderBottom: `1px solid ${alpha(theme.palette.common.black, isDark ? 0.4 : 0.08)}`,
+            backdropFilter: 'blur(14px)'
+          }}
+        >
+          <Toolbar sx={{display: 'flex', justifyContent: 'space-between', gap: 1}}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{mr: 1}}>
+                <MenuIcon />
+              </IconButton>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
+                sx={{cursor: 'pointer'}}
+                onClick={handleNavigate('/film-rolls')}
+              >
+                <Box
+                  component="img"
+                  src="/icon.png"
+                  alt="Film Manager logo"
+                  sx={{width: 36, height: 36, borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.18)'}}
+                />
+                <Typography variant="h6" sx={{fontWeight: 700, letterSpacing: '0.04em'}}>
+                  Film Manager
+                </Typography>
+              </Stack>
+            </Stack>
+            <IconButton
+              onClick={toggle}
+              color="inherit"
+              sx={{color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main'}}
+            >
+              {isDark ? <LightModeIcon /> : <DarkModeIcon />}
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+      )}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{keepMounted: true}}
+        sx={{
+          display: {xs: 'block', md: 'none'},
+          '& .MuiDrawer-paper': drawerPaperStyles
+        }}
+      >
+        {drawerContent}
+      </Drawer>
       <Drawer
         variant="permanent"
         sx={{
-          width: drawerWidth,
+          display: {xs: 'none', md: 'block'},
           flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-            borderRight: `1px solid ${alpha(theme.palette.common.black, isDark ? 0.4 : 0.08)}`,
-            backgroundColor: alpha(theme.palette.background.paper, isDark ? 0.98 : 0.96),
-            display: 'flex',
-            flexDirection: 'column',
-            py: 3,
-            px: 2.5,
-            gap: 2
-          }
+          '& .MuiDrawer-paper': drawerPaperStyles
         }}
+        open
       >
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={1.5}
-          sx={{cursor: 'pointer', px: 1}}
-          onClick={handleNavigate('/film-rolls')}
-        >
-          <Box
-            component="img"
-            src="/icon.png"
-            alt="Film Manager logo"
-            sx={{width: 40, height: 40, borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.18)'}}
-          />
-          <Typography variant="h6" sx={{fontWeight: 700, letterSpacing: '0.04em'}}>
-            Film Manager
-          </Typography>
-        </Stack>
-        <List sx={{px: 0}}>
-          {navItems.map((item) => {
-            const active = isActive(item.path);
-            return (
-              <ListItemButton
-                key={item.path}
-                selected={active}
-                onClick={handleNavigate(item.path)}
-                sx={{
-                  borderRadius: 2,
-                  mb: 0.5,
-                  color: active ? theme.palette.secondary.main : 'text.primary',
-                  backgroundColor: activeBackground(active),
-                  '&:hover': {
-                    backgroundColor: activeHover(active)
-                  }
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    color: active ? theme.palette.secondary.main : 'inherit',
-                    minWidth: 36
-                  }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            );
-          })}
-        </List>
-        <Box sx={{flexGrow: 1}} />
-        <Divider sx={{borderColor: alpha(theme.palette.common.black, isDark ? 0.4 : 0.12)}} />
-        <Stack spacing={1.25} sx={{pt: 2, px: 1}}>
-          <Stack spacing={0.25} sx={{alignItems: 'center', textAlign: 'center'}}>
-            <Typography variant="body2" fontWeight={600}>
-              {user.firstName} {user.lastName}
-            </Typography>
-            <Typography variant="caption" sx={{color: alpha(theme.palette.text.primary, 0.7)}}>
-              {user.email}
-            </Typography>
-          </Stack>
-          <List sx={{p: 0}}>
-            <ListItemButton
-              onClick={toggle}
-              sx={{
-                borderRadius: 2,
-                mb: 0.5,
-                color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main'
-              }}
-            >
-              <ListItemIcon sx={{minWidth: 36, color: 'inherit'}}>
-                {isDark ? <LightModeIcon /> : <DarkModeIcon />}
-              </ListItemIcon>
-              <ListItemText primary={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`} />
-            </ListItemButton>
-            <ListItemButton
-              onClick={handleLogout}
-              sx={{
-                borderRadius: 2,
-                color: theme.palette.error.main,
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.error.main, 0.08)
-                }
-              }}
-            >
-              <ListItemIcon sx={{minWidth: 36, color: 'inherit'}}>
-                <LogoutIcon />
-              </ListItemIcon>
-              <ListItemText primary="Logout" />
-            </ListItemButton>
-          </List>
-        </Stack>
+        {drawerContent}
       </Drawer>
       <Box
         component="main"
@@ -203,11 +285,13 @@ export function AppLayout() {
           flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
-          py: {xs: 3, sm: 5},
+          py: {xs: 2.5, sm: 5},
           px: {xs: 3, sm: 6},
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          width: '100%'
         }}
       >
+        {isMobile && <Toolbar sx={{mb: 2, display: {xs: 'flex', md: 'none'}}} />}
         <Box
           sx={{
             flexGrow: 1,
