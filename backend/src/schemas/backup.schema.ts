@@ -2,6 +2,8 @@ import {z} from 'zod';
 
 import {filmFormatValues} from './film-roll.schema';
 
+const roleValues = ['USER', 'ADMIN'] as const;
+
 const isoDateTime = z.string().datetime({offset: true});
 
 export const splitGradeStepSchema = z.object({
@@ -56,10 +58,26 @@ export const filmRollBackupSchema = z.object({
   prints: z.array(printBackupSchema).optional().default([])
 });
 
+export const userBackupSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  firstName: z.string(),
+  lastName: z.string(),
+  role: z.enum(roleValues),
+  isActive: z.boolean(),
+  passwordHash: z.string(),
+  failedLoginAttempts: z.number().int(),
+  lockoutUntil: isoDateTime.nullable(),
+  createdAt: isoDateTime,
+  updatedAt: isoDateTime
+});
+
 export const backupPayloadSchema = z.object({
   filmRolls: z.array(filmRollBackupSchema),
-  prints: z.array(printBackupSchema).optional().default([])
+  prints: z.array(printBackupSchema).optional().default([]),
+  users: z.array(userBackupSchema).optional()
 });
 
 export type BackupPayload = z.infer<typeof backupPayloadSchema>;
 export type PrintBackup = z.infer<typeof printBackupSchema>;
+export type UserBackup = z.infer<typeof userBackupSchema>;

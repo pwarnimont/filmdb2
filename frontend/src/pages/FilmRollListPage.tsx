@@ -140,6 +140,10 @@ function FilmRollListPage() {
         prints: Array.from(printMap.values())
       };
 
+      if (Array.isArray(parsed.users)) {
+        payload.users = parsed.users;
+      }
+
       const summary = await importBackup(payload);
       const filmRollTotal = summary.filmRollsCreated + summary.filmRollsUpdated;
       const printTotal = summary.printsCreated + summary.printsUpdated;
@@ -242,7 +246,7 @@ function FilmRollListPage() {
     staleTime: 1000 * 60 * 2,
     enabled: showHistory,
     queryFn: async () => {
-      const pageSize = 200;
+      const pageSize = 100; // backend max page size per film-roll.schema
       let page = 1;
       let total = Infinity;
       const collected: FilmRoll[] = [];

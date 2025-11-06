@@ -10,11 +10,12 @@ import {
   ListItemText,
   Stack,
   Toolbar,
+  Tooltip,
   Typography,
   useMediaQuery
 } from '@mui/material';
 import {alpha, useTheme} from '@mui/material/styles';
-import {useContext, useState} from 'react';
+import {useContext, useEffect, useState} from 'react';
 import DarkModeIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeIcon from '@mui/icons-material/LightModeOutlined';
 import MovieFilterIcon from '@mui/icons-material/MovieFilterOutlined';
@@ -22,6 +23,8 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettingsOutlin
 import LogoutIcon from '@mui/icons-material/LogoutOutlined';
 import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshopOutlined';
 import MenuIcon from '@mui/icons-material/MenuOutlined';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import {Outlet, useLocation, useNavigate} from 'react-router-dom';
 
 import ThemeModeContext from '../contexts/ThemeModeContext';
@@ -34,6 +37,7 @@ export function AppLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const isMobile = !isDesktop;
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const {mode, toggle} = useContext(ThemeModeContext);
 
   const isDark = mode === 'dark';
@@ -63,12 +67,22 @@ export function AppLayout() {
     navigate('/login');
   };
 
+  useEffect(() => {
+    if (!isDesktop) {
+      setIsNavCollapsed(false);
+    }
+  }, [isDesktop]);
+
+  const toggleNavCollapse = () => {
+    setIsNavCollapsed((prev) => !prev);
+  };
+
   if (!user) {
     return <Outlet />;
   }
 
   const isActive = (path: string) => location.pathname.startsWith(path);
-  const drawerWidth = 272;
+  const drawerWidth = isNavCollapsed ? 90 : 272;
   const drawerPaperStyles = {
     width: drawerWidth,
     boxSizing: 'border-box',
@@ -76,8 +90,9 @@ export function AppLayout() {
     backgroundColor: alpha(theme.palette.background.paper, isDark ? 0.98 : 0.96),
     display: 'flex',
     flexDirection: 'column',
+    alignItems: isNavCollapsed ? 'center' : 'stretch',
     py: 3,
-    px: 2.5,
+    px: isNavCollapsed ? 1.25 : 2.5,
     gap: 2
   };
 
@@ -106,24 +121,64 @@ export function AppLayout() {
     });
   }
 
+  const textVisibilityStyles = {
+    opacity: isNavCollapsed ? 0 : 1,
+    maxWidth: isNavCollapsed ? 0 : '100%',
+    overflow: 'hidden',
+    transition: 'opacity 160ms ease',
+    whiteSpace: 'nowrap'
+  };
+
   const drawerContent = (
     <Stack spacing={2} sx={{height: '100%'}}>
       <Stack
         direction="row"
         alignItems="center"
         spacing={1.5}
-        sx={{cursor: 'pointer', px: 1}}
-        onClick={handleNavigate('/film-rolls')}
+        sx={{
+          cursor: 'pointer',
+          px: isNavCollapsed ? 0 : 1,
+          width: '100%',
+          position: 'relative'
+        }}
       >
-        <Box
-          component="img"
-          src="/icon.png"
-          alt="Film Manager logo"
-          sx={{width: 40, height: 40, borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.18)'}}
-        />
-        <Typography variant="h6" sx={{fontWeight: 700, letterSpacing: '0.04em'}}>
-          Film Manager
-        </Typography>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.5}
+          onClick={handleNavigate('/film-rolls')}
+          sx={{
+            flexGrow: 1,
+            justifyContent: isNavCollapsed ? 'center' : 'flex-start',
+            width: '100%'
+          }}
+        >
+          <Box
+            component="img"
+            src="/icon.png"
+            alt="Film Manager logo"
+            sx={{width: 40, height: 40, borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.18)'}}
+          />
+          <Typography variant="h6" sx={{fontWeight: 700, letterSpacing: '0.04em', ...textVisibilityStyles}}>
+            Film Manager
+          </Typography>
+        </Stack>
+        {!isMobile && (
+          <Tooltip title={isNavCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+            <IconButton
+              onClick={toggleNavCollapse}
+              size="small"
+              sx={{
+                position: 'absolute',
+                right: isNavCollapsed ? 4 : 0,
+                transform: 'translateX(50%)',
+                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`
+              }}
+            >
+              {isNavCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+            </IconButton>
+          </Tooltip>
+        )}
       </Stack>
       <List sx={{px: 0}}>
         {navItems.map((item) => {
@@ -138,6 +193,7 @@ export function AppLayout() {
                 mb: 0.5,
                 color: active ? theme.palette.secondary.main : 'text.primary',
                 backgroundColor: activeBackground(active),
+                justifyContent: isNavCollapsed ? 'center' : 'flex-start',
                 '&:hover': {
                   backgroundColor: activeHover(active)
                 }
@@ -146,55 +202,76 @@ export function AppLayout() {
               <ListItemIcon
                 sx={{
                   color: active ? theme.palette.secondary.main : 'inherit',
-                  minWidth: 36
+                  minWidth: isNavCollapsed ? 0 : 36,
+                  mr: isNavCollapsed ? 0 : 1.5,
+                  justifyContent: 'center'
                 }}
               >
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.label} />
+              <ListItemText primary={item.label} sx={textVisibilityStyles} />
             </ListItemButton>
           );
         })}
       </List>
       <Box sx={{flexGrow: 1}} />
       <Divider sx={{borderColor: alpha(theme.palette.common.black, isDark ? 0.4 : 0.12)}} />
-      <Stack spacing={1.25} sx={{pt: 2, px: 1}}>
-        <Stack spacing={0.25} sx={{alignItems: 'center', textAlign: 'center'}}>
-          <Typography variant="body2" fontWeight={600}>
+      <Stack spacing={1.25} sx={{pt: 2, px: isNavCollapsed ? 0 : 1, width: '100%', alignItems: isNavCollapsed ? 'center' : 'stretch'}}>
+        <Stack spacing={0.25} sx={{alignItems: 'center', textAlign: 'center', width: '100%'}}>
+          <Typography variant="body2" fontWeight={600} sx={textVisibilityStyles}>
             {user.firstName} {user.lastName}
           </Typography>
-          <Typography variant="caption" sx={{color: alpha(theme.palette.text.primary, 0.7)}}>
+          <Typography
+            variant="caption"
+            sx={{color: alpha(theme.palette.text.primary, 0.7), ...textVisibilityStyles}}
+          >
             {user.email}
           </Typography>
         </Stack>
-        <List sx={{p: 0}}>
+        <List sx={{p: 0, width: '100%'}}>
           <ListItemButton
             onClick={toggle}
             sx={{
               borderRadius: 2,
               mb: 0.5,
-              color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main'
+              color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main',
+              justifyContent: isNavCollapsed ? 'center' : 'flex-start'
             }}
           >
-            <ListItemIcon sx={{minWidth: 36, color: 'inherit'}}>
+            <ListItemIcon
+              sx={{
+                minWidth: isNavCollapsed ? 0 : 36,
+                mr: isNavCollapsed ? 0 : 1,
+                color: 'inherit',
+                justifyContent: 'center'
+              }}
+            >
               {isDark ? <LightModeIcon /> : <DarkModeIcon />}
             </ListItemIcon>
-            <ListItemText primary={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`} />
+            <ListItemText primary={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`} sx={textVisibilityStyles} />
           </ListItemButton>
           <ListItemButton
             onClick={handleLogout}
             sx={{
               borderRadius: 2,
               color: theme.palette.error.main,
+              justifyContent: isNavCollapsed ? 'center' : 'flex-start',
               '&:hover': {
                 backgroundColor: alpha(theme.palette.error.main, 0.08)
               }
             }}
           >
-            <ListItemIcon sx={{minWidth: 36, color: 'inherit'}}>
+            <ListItemIcon
+              sx={{
+                minWidth: isNavCollapsed ? 0 : 36,
+                mr: isNavCollapsed ? 0 : 1,
+                color: 'inherit',
+                justifyContent: 'center'
+              }}
+            >
               <LogoutIcon />
             </ListItemIcon>
-            <ListItemText primary="Logout" />
+            <ListItemText primary="Logout" sx={textVisibilityStyles} />
           </ListItemButton>
         </List>
       </Stack>

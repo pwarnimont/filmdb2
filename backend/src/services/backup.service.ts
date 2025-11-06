@@ -2,7 +2,7 @@ import {Prisma} from '@prisma/client';
 import createHttpError from 'http-errors';
 
 import {prisma} from '../config/prisma';
-import type {BackupPayload, PrintBackup} from '../schemas/backup.schema';
+import type {BackupPayload, PrintBackup, UserBackup} from '../schemas/backup.schema';
 import {filmRollService} from './film-roll.service';
 import {printService} from './print.service';
 import type {PrintDto} from './print.service';
@@ -32,9 +32,14 @@ const serializeSplitGradeSteps = (
 
 class BackupService {
   async exportForUser(user: UserRolePayload) {
-    const [filmRolls, prints] = await Promise.all([
+    const [filmRolls, prints, users] = await Promise.all([
       filmRollService.exportAll(user),
-      printService.exportAll(user)
+      printService.exportAll(user),
+      user.role === 'ADMIN'
+        ? prisma.user.findMany({
+            orderBy: {createdAt: 'asc'}
+          })
+        : Promise.resolve(null)
     ]);
 
     const grouped = new Map<string, PrintDto[]>();
@@ -49,7 +54,11 @@ class BackupService {
       prints: grouped.get(roll.id) ?? []
     }));
 
-    return {filmRolls: filmRollsWithPrints, prints};
+    return {
+      filmRolls: filmRollsWithPrints,
+      prints,
+      users: users ?? undefined
+    };
   }
 
   async importForUser(payload: BackupPayload, user: UserRolePayload) {
@@ -62,6 +71,10 @@ class BackupService {
     const aggregatedPrints = new Map<string, PrintBackup>();
 
     await prisma.$transaction(async (tx) => {
+      if (user.role === 'ADMIN' && payload.users && payload.users.length > 0) {
+        await this.upsertUsers(tx, payload.users);
+      }
+
       for (const roll of payload.filmRolls) {
         const existing = await tx.filmRoll.findUnique({
           where: {id: roll.id}
@@ -212,6 +225,34 @@ class BackupService {
       printsCreated,
       printsUpdated
     };
+  }
+
+  private async upsertUsers(
+    tx: Prisma.TransactionClient,
+    users: UserBackup[]
+  ): Promise<void> {
+    for (const backupUser of users) {
+      const baseData = {
+        email: backupUser.email,
+        firstName: backupUser.firstName,
+        lastName: backupUser.lastName,
+        role: backupUser.role,
+        isActive: backupUser.isActive,
+        passwordHash: backupUser.passwordHash,
+        failedLoginAttempts: backupUser.failedLoginAttempts,
+        lockoutUntil: backupUser.lockoutUntil ? new Date(backupUser.lockoutUntil) : null
+      };
+
+      await tx.user.upsert({
+        where: {id: backupUser.id},
+        update: baseData,
+        create: {
+          id: backupUser.id,
+          ...baseData,
+          createdAt: new Date(backupUser.createdAt)
+        }
+      });
+    }
   }
 }
 

@@ -122,11 +122,13 @@ export interface BackupSnapshot {
   generatedAt: string;
   filmRolls: FilmRoll[];
   prints: Print[];
+  users?: UserBackup[];
 }
 
 export interface BackupImportPayload {
   filmRolls: FilmRoll[];
   prints?: Print[];
+  users?: UserBackup[];
 }
 
 export interface BackupImportSummary {
@@ -148,6 +150,20 @@ export interface AdminUserSummary {
   lastName: string;
   role: UserRole;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserBackup {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  isActive: boolean;
+  passwordHash: string;
+  failedLoginAttempts: number;
+  lockoutUntil: string | null;
   createdAt: string;
   updatedAt: string;
 }
