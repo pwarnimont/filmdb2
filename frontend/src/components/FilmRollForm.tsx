@@ -12,7 +12,7 @@ import {
 import {Controller, useForm, useWatch} from 'react-hook-form';
 import {z} from 'zod';
 
-import type {FilmRollPayload} from '../types/api';
+import type {Camera, FilmRollPayload} from '../types/api';
 
 const filmFormats = ['35mm', '6x6', '6x4_5', '6x7', '6x9', 'other'] as const;
 const filmFormatLabels: Record<(typeof filmFormats)[number], string> = {
@@ -38,6 +38,11 @@ const schema = z.object({
     .optional(),
   dateShot: z.string().optional().nullable(),
   cameraName: z.string().optional().nullable(),
+  cameraId: z
+    .string()
+    .uuid('Select a valid camera')
+    .optional()
+    .nullable(),
   filmFormat: z.enum(filmFormats),
   exposures: z
     .number({invalid_type_error: 'Exposures must be a number'})
@@ -56,11 +61,17 @@ type FilmRollFormValues = z.infer<typeof schema>;
 
 interface FilmRollFormProps {
   defaultValues?: Partial<FilmRollFormValues>;
+  cameras: Camera[];
   onSubmit: (values: FilmRollPayload) => Promise<void>;
   submitLabel?: string;
 }
 
-export function FilmRollForm({defaultValues, onSubmit, submitLabel = 'Save'}: FilmRollFormProps) {
+export function FilmRollForm({
+  defaultValues,
+  cameras,
+  onSubmit,
+  submitLabel = 'Save'
+}: FilmRollFormProps) {
   const {
     control,
     handleSubmit,
@@ -75,6 +86,7 @@ export function FilmRollForm({defaultValues, onSubmit, submitLabel = 'Save'}: Fi
       shotIso: null,
       dateShot: '',
       cameraName: '',
+      cameraId: null,
       filmFormat: '35mm',
       exposures: 36,
       isDeveloped: false,
@@ -84,6 +96,11 @@ export function FilmRollForm({defaultValues, onSubmit, submitLabel = 'Save'}: Fi
     }
   });
   const isScanned = useWatch({control, name: 'isScanned', defaultValue: defaultValues?.isScanned ?? false});
+  const selectedCameraId = useWatch({
+    control,
+    name: 'cameraId',
+    defaultValue: defaultValues?.cameraId ?? null
+  });
 
   const onValid = handleSubmit(async (values) => {
     const payload: FilmRollPayload = {
@@ -93,6 +110,7 @@ export function FilmRollForm({defaultValues, onSubmit, submitLabel = 'Save'}: Fi
       shotIso: values.shotIso ?? null,
       dateShot: values.dateShot ? new Date(values.dateShot).toISOString() : null,
       cameraName: values.cameraName ?? null,
+      cameraId: values.cameraId ?? null,
       filmFormat: values.filmFormat,
       exposures: values.exposures,
       isDeveloped: values.isDeveloped,
@@ -149,14 +167,45 @@ export function FilmRollForm({defaultValues, onSubmit, submitLabel = 'Save'}: Fi
             error={!!errors.dateShot}
             helperText={errors.dateShot?.message}
           />
-          <TextField
-            label="Camera Name"
-            fullWidth
-            {...register('cameraName')}
-            error={!!errors.cameraName}
-            helperText={errors.cameraName?.message}
+          <Controller
+            control={control}
+            name="cameraId"
+            render={({field}) => (
+              <TextField
+                select
+                label="Camera"
+                fullWidth
+                {...field}
+                value={field.value ?? ''}
+                onChange={(event) => field.onChange(event.target.value ? event.target.value : null)}
+                error={!!errors.cameraId}
+                helperText={
+                  errors.cameraId?.message ??
+                  'Link the roll to a camera from your library'
+                }
+              >
+                <MenuItem value="">No camera selected</MenuItem>
+                {cameras.map((camera) => (
+                  <MenuItem key={camera.id} value={camera.id}>
+                    {`${camera.manufacturer} ${camera.model}`}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
           />
         </Stack>
+        <TextField
+          label="Custom Camera Name"
+          fullWidth
+          {...register('cameraName')}
+          disabled={!!selectedCameraId}
+          error={!selectedCameraId && !!errors.cameraName}
+          helperText={
+            selectedCameraId
+              ? 'Linked cameras automatically set this value'
+              : errors.cameraName?.message ?? 'Optional description if no camera is linked'
+          }
+        />
         <Stack direction={{xs: 'column', sm: 'row'}} spacing={2}>
           <Controller
             control={control}

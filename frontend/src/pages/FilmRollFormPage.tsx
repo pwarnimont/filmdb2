@@ -4,6 +4,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useNavigate, useParams} from 'react-router-dom';
 
 import {createFilmRoll, getFilmRoll, updateFilmRoll} from '../api/filmRolls';
+import {listCameras} from '../api/cameras';
 import type {FilmRollPayload} from '../types/api';
 import {FilmRollForm} from '../components/FilmRollForm';
 import {useSnackbar} from '../providers/SnackbarProvider';
@@ -22,6 +23,12 @@ function FilmRollFormPage({mode}: FilmRollFormPageProps) {
     queryKey: ['film-roll', id],
     queryFn: () => getFilmRoll(id as string),
     enabled: mode === 'edit' && !!id
+  });
+
+  const {data: cameraOptions} = useQuery({
+    queryKey: ['cameras', 'options'],
+    queryFn: () => listCameras({page: 1, pageSize: 200}),
+    staleTime: 1000 * 60 * 10
   });
 
   const createMutation = useMutation({
@@ -56,6 +63,7 @@ function FilmRollFormPage({mode}: FilmRollFormPageProps) {
       shotIso: data.shotIso,
       dateShot: data.dateShot ? data.dateShot.slice(0, 10) : '',
       cameraName: data.cameraName ?? '',
+      cameraId: data.cameraId,
       filmFormat: data.filmFormat,
       exposures: data.exposures,
       isDeveloped: data.isDeveloped,
@@ -95,6 +103,7 @@ function FilmRollFormPage({mode}: FilmRollFormPageProps) {
         </div>
         <FilmRollForm
           defaultValues={defaultValues}
+          cameras={cameraOptions?.items ?? []}
           onSubmit={handleSubmit}
           submitLabel={mode === 'create' ? 'Create' : 'Save Changes'}
         />

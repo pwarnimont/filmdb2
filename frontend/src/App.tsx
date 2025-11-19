@@ -11,6 +11,7 @@ import AdminSettingsPage from './pages/AdminSettingsPage';
 import PrintListPage from './pages/PrintListPage';
 import PrintFormPage from './pages/PrintFormPage';
 import PrintDetailPage from './pages/PrintDetailPage';
+import CameraListPage from './pages/CameraListPage';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="/film-rolls/new" element={<FilmRollFormPage mode="create" />} />
           <Route path="/film-rolls/:id" element={<FilmRollDetailPage />} />
           <Route path="/film-rolls/:id/edit" element={<FilmRollFormPage mode="edit" />} />
+          <Route path="/cameras" element={<CameraListPage />} />
           <Route path="/prints" element={<PrintListPage />} />
           <Route path="/prints/new" element={<PrintFormPage mode="create" />} />
           <Route path="/prints/:id" element={<PrintDetailPage />} />

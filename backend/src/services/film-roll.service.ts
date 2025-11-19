@@ -13,6 +13,30 @@ import type {UserRolePayload} from '../types/user';
 import {filmFormatToApi, parseFilmFormat} from '../utils/film-format';
 import type {PrintDto} from './print.service';
 
+const trimToNull = (value: string | null | undefined): string | null => {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const filmRollInclude = {
+  development: true,
+  camera: true
+} satisfies Prisma.FilmRollInclude;
+
+type FilmRollRecord = Prisma.FilmRollGetPayload<{include: typeof filmRollInclude}>;
+
+export interface FilmRollCameraDto {
+  id: string;
+  manufacturer: string;
+  model: string;
+  filmType: string;
+  releaseDate: string | null;
+  purchaseDate: string | null;
+}
+
 export interface FilmRollDto {
   id: string;
   filmId: string;
@@ -21,6 +45,8 @@ export interface FilmRollDto {
   shotIso: number | null;
   dateShot: string | null;
   cameraName: string | null;
+  cameraId: string | null;
+  camera?: FilmRollCameraDto;
   filmFormat: string;
   exposures: number;
   isDeveloped: boolean;
@@ -44,7 +70,7 @@ export interface DevelopmentDto {
   agitationScheme: string;
 }
 
-function toDto(record: Prisma.FilmRollGetPayload<{include: {development: true}}>): FilmRollDto {
+function toDto(record: FilmRollRecord): FilmRollDto {
   return {
     id: record.id,
     filmId: record.filmId,
@@ -53,6 +79,17 @@ function toDto(record: Prisma.FilmRollGetPayload<{include: {development: true}}>
     shotIso: record.shotIso ?? null,
     dateShot: record.dateShot ? record.dateShot.toISOString() : null,
     cameraName: record.cameraName ?? null,
+    cameraId: record.cameraId ?? null,
+    camera: record.camera
+      ? {
+          id: record.camera.id,
+          manufacturer: record.camera.manufacturer,
+          model: record.camera.model,
+          filmType: record.camera.filmType,
+          releaseDate: record.camera.releaseDate ? record.camera.releaseDate.toISOString() : null,
+          purchaseDate: record.camera.purchaseDate ? record.camera.purchaseDate.toISOString() : null
+        }
+      : undefined,
     filmFormat: filmFormatToApi[record.filmFormat],
     exposures: record.exposures,
     isDeveloped: record.isDeveloped,
@@ -98,6 +135,10 @@ class FilmRollService {
       where.isDeveloped = query.isDeveloped;
     }
 
+    if (query.cameraId) {
+      where.cameraId = query.cameraId;
+    }
+
     const orderBy: Prisma.FilmRollOrderByWithRelationInput = {};
     if (query.sortBy) {
       orderBy[query.sortBy] = query.sortDir ?? 'desc';
@@ -109,7 +150,7 @@ class FilmRollService {
       prisma.filmRoll.count({where}),
       prisma.filmRoll.findMany({
         where,
-        include: {development: true},
+        include: filmRollInclude,
         orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize
@@ -127,7 +168,7 @@ class FilmRollService {
   async getFilmRollById(id: string, user: UserRolePayload): Promise<FilmRollDto> {
     const roll = await prisma.filmRoll.findUnique({
       where: {id},
-      include: {development: true}
+      include: filmRollInclude
     });
 
     if (!roll || (user.role !== 'ADMIN' && roll.userId !== user.id)) {
@@ -138,6 +179,12 @@ class FilmRollService {
   }
 
   async createFilmRoll(data: FilmRollCreateInput, user: UserRolePayload): Promise<FilmRollDto> {
+    const cameraLink = await this.resolveCameraLink(
+      data.cameraId ?? null,
+      data.cameraName ?? null,
+      user
+    );
+
     const created = await prisma.filmRoll.create({
       data: {
         filmId: data.filmId,
@@ -145,7 +192,8 @@ class FilmRollService {
         boxIso: data.boxIso,
         shotIso: data.shotIso ?? null,
         dateShot: data.dateShot ?? undefined,
-        cameraName: data.cameraName ?? null,
+        cameraName: cameraLink.cameraName,
+        cameraId: cameraLink.cameraId,
         filmFormat: parseFilmFormat(data.filmFormat),
         exposures: data.exposures,
         isDeveloped: data.isDeveloped ?? false,
@@ -153,7 +201,7 @@ class FilmRollService {
         scanFolder: data.scanFolder ?? null,
         userId: user.id
       },
-      include: {development: true}
+      include: filmRollInclude
     });
 
     return toDto(created);
@@ -166,23 +214,37 @@ class FilmRollService {
   ): Promise<FilmRollDto> {
     await this.ensureOwnership(id, user);
 
+    const updateData: Prisma.FilmRollUncheckedUpdateInput = {
+      filmId: data.filmId ?? undefined,
+      filmName: data.filmName ?? undefined,
+      boxIso: data.boxIso ?? undefined,
+      shotIso: data.shotIso !== undefined ? data.shotIso : undefined,
+      dateShot: data.dateShot !== undefined ? data.dateShot ?? null : undefined,
+      filmFormat: data.filmFormat ? parseFilmFormat(data.filmFormat) : undefined,
+      exposures: data.exposures ?? undefined,
+      isDeveloped: data.isDeveloped ?? undefined,
+      isScanned: data.isScanned ?? undefined,
+      scanFolder: data.scanFolder !== undefined ? data.scanFolder ?? null : undefined
+    };
+
+    const hasCameraIdField = Object.prototype.hasOwnProperty.call(data, 'cameraId');
+
+    if (hasCameraIdField) {
+      const cameraLink = await this.resolveCameraLink(
+        (data as {cameraId?: string | null}).cameraId ?? null,
+        data.cameraName ?? null,
+        user
+      );
+      updateData.cameraId = cameraLink.cameraId;
+      updateData.cameraName = cameraLink.cameraName;
+    } else if (data.cameraName !== undefined) {
+      updateData.cameraName = trimToNull(data.cameraName);
+    }
+
     const updated = await prisma.filmRoll.update({
       where: {id},
-      data: {
-        filmId: data.filmId ?? undefined,
-        filmName: data.filmName ?? undefined,
-        boxIso: data.boxIso ?? undefined,
-        shotIso: data.shotIso !== undefined ? data.shotIso : undefined,
-        dateShot: data.dateShot !== undefined ? data.dateShot ?? null : undefined,
-        cameraName: data.cameraName !== undefined ? data.cameraName ?? null : undefined,
-        filmFormat: data.filmFormat ? parseFilmFormat(data.filmFormat) : undefined,
-        exposures: data.exposures ?? undefined,
-        isDeveloped: data.isDeveloped ?? undefined,
-        isScanned: data.isScanned ?? undefined,
-        scanFolder:
-          data.scanFolder !== undefined ? (data.scanFolder ?? null) : undefined
-      },
-      include: {development: true}
+      data: updateData,
+      include: filmRollInclude
     });
 
     return toDto(updated);
@@ -231,7 +293,7 @@ class FilmRollService {
       data: {
         isDeveloped: true
       },
-      include: {development: true}
+      include: filmRollInclude
     });
 
     return toDto(updated);
@@ -247,7 +309,7 @@ class FilmRollService {
     const updated = await prisma.filmRoll.update({
       where: {id: filmRollId},
       data: {isDeveloped: false},
-      include: {development: true}
+      include: filmRollInclude
     });
 
     return toDto(updated);
@@ -284,7 +346,7 @@ class FilmRollService {
     const updated = await prisma.filmRoll.update({
       where: {id: filmRollId},
       data: {isDeveloped: true},
-      include: {development: true}
+      include: filmRollInclude
     });
 
     return toDto(updated);
@@ -304,10 +366,46 @@ class FilmRollService {
     const where: Prisma.FilmRollWhereInput = user.role === 'ADMIN' ? {} : {userId: user.id};
     const records = await prisma.filmRoll.findMany({
       where,
-      include: {development: true},
+      include: filmRollInclude,
       orderBy: {createdAt: 'asc'}
     });
     return records.map(toDto);
+  }
+
+  private async resolveCameraLink(
+    cameraId: string | null | undefined,
+    fallbackName: string | null | undefined,
+    user: UserRolePayload
+  ) {
+    if (!cameraId) {
+      return {
+        cameraId: null,
+        cameraName: trimToNull(fallbackName)
+      };
+    }
+
+    const where: Prisma.CameraWhereInput = {id: cameraId};
+    if (user.role !== 'ADMIN') {
+      where.userId = user.id;
+    }
+
+    const camera = await prisma.camera.findFirst({
+      where,
+      select: {
+        id: true,
+        manufacturer: true,
+        model: true
+      }
+    });
+
+    if (!camera) {
+      throw createHttpError(404, 'Camera not found');
+    }
+
+    return {
+      cameraId: camera.id,
+      cameraName: `${camera.manufacturer} ${camera.model}`.trim()
+    };
   }
 }
 

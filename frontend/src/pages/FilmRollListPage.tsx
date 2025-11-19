@@ -130,7 +130,8 @@ function FilmRollListPage() {
 
       const payload: BackupImportPayload = {
         filmRolls,
-        prints: Array.from(printMap.values())
+        prints: Array.from(printMap.values()),
+        cameras: Array.isArray(parsed.cameras) ? parsed.cameras : []
       };
 
       if (Array.isArray(parsed.users)) {
@@ -140,16 +141,18 @@ function FilmRollListPage() {
       const summary = await importBackup(payload);
       const filmRollTotal = summary.filmRollsCreated + summary.filmRollsUpdated;
       const printTotal = summary.printsCreated + summary.printsUpdated;
+      const cameraTotal = summary.camerasCreated + summary.camerasUpdated;
 
       snackbar.showMessage(
-        `Imported ${filmRollTotal} film rolls and ${printTotal} prints`,
+        `Imported ${cameraTotal} cameras, ${filmRollTotal} film rolls, and ${printTotal} prints`,
         'success'
       );
 
       await Promise.all([
         queryClient.invalidateQueries({queryKey: ['film-rolls']}),
         queryClient.invalidateQueries({queryKey: ['film-rolls', 'stats']}),
-        queryClient.invalidateQueries({queryKey: ['prints']})
+        queryClient.invalidateQueries({queryKey: ['prints']}),
+        queryClient.invalidateQueries({queryKey: ['cameras']})
       ]);
     } catch (error) {
       console.error(error);
@@ -280,6 +283,15 @@ function FilmRollListPage() {
         width: 140,
         valueGetter: (params) =>
           params.value ? new Date(params.value as string).toLocaleDateString() : '—'
+      },
+      {
+        field: 'camera',
+        headerName: 'Camera',
+        flex: 1.2,
+        minWidth: 200,
+        sortable: false,
+        valueGetter: ({row}) =>
+          row.camera ? `${row.camera.manufacturer} ${row.camera.model}` : row.cameraName ?? '—'
       },
       {
         field: 'isDeveloped',
@@ -560,6 +572,10 @@ function FilmRollListPage() {
               setSelectedForDetails(null);
               setSelectedForDevelop(selectedForDetails);
             }}
+            onOpenCamera={(cameraId) => {
+              setSelectedForDetails(null);
+              navigate(`/cameras?cameraId=${cameraId}`);
+            }}
           />
         )}
       </Drawer>
@@ -588,13 +604,15 @@ function FilmRollDetailsPanel({
   onClose,
   onOpen,
   onEdit,
-  onOpenDevelopmentDialog
+  onOpenDevelopmentDialog,
+  onOpenCamera
 }: {
   film: FilmRoll;
   onClose: () => void;
   onOpen: () => void;
   onEdit: () => void;
   onOpenDevelopmentDialog: () => void;
+  onOpenCamera?: (cameraId: string) => void;
 }) {
   const brand = detectFilmBrand(film.filmName);
   const developedLabel = film.isDeveloped ? 'Update Development' : 'Mark as Developed';
@@ -628,7 +646,23 @@ function FilmRollDetailsPanel({
 
         <InfoSection>
           <InfoRow label="Date Shot" value={formatDate(film.dateShot)} />
-          <InfoRow label="Camera" value={film.cameraName ?? '—'} />
+          <InfoRow
+            label="Camera"
+            value={
+              film.camera ? (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2" fontWeight={500}>
+                    {`${film.camera.manufacturer} ${film.camera.model}`}
+                  </Typography>
+                  <Button size="small" onClick={() => film.camera && onOpenCamera?.(film.camera.id)}>
+                    View
+                  </Button>
+                </Stack>
+              ) : (
+                film.cameraName ?? '—'
+              )
+            }
+          />
           <InfoRow label="Developed" value={film.isDeveloped ? 'Yes' : 'No'} />
           <InfoRow
             label="Scanned"
@@ -766,13 +800,17 @@ function StatisticsStrip({
   );
 }
 
-function InfoRow({label, value}: {label: string; value: string}) {
+function InfoRow({label, value}: {label: string; value: ReactNode}) {
   return (
     <Box>
       <Typography variant="caption" color="text.secondary">
         {label}
       </Typography>
-      <Typography variant="body1">{value}</Typography>
+      {typeof value === 'string' ? (
+        <Typography variant="body1">{value}</Typography>
+      ) : (
+        value
+      )}
     </Box>
   );
 }

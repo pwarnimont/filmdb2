@@ -33,7 +33,8 @@ export const filmRollCreateSchema = z.object({
   boxIso: z.number().int().positive(),
   shotIso: z.number().int().positive().optional().nullable(),
   dateShot: optionalDate,
-  cameraName: z.string().optional().nullable(),
+  cameraName: optionalTrimmedString.optional(),
+  cameraId: z.string().uuid().optional().nullable(),
   filmFormat: z.enum(filmFormatValues),
   exposures: z.number().int().positive(),
   isDeveloped: z.boolean().optional(),
@@ -62,6 +63,7 @@ export const paginationQuerySchema = z.object({
     .enum(['true', 'false'])
     .optional()
     .transform((value) => (value === undefined ? undefined : value === 'true')),
+  cameraId: z.string().uuid().optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
   sortBy: z.enum(['filmName', 'dateShot', 'createdAt']).optional(),

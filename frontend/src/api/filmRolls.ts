@@ -9,6 +9,7 @@ import type {
 export interface FilmRollFilters {
   search?: string;
   isDeveloped?: boolean;
+  cameraId?: string;
   page?: number;
   pageSize?: number;
   sortBy?: 'filmName' | 'dateShot' | 'createdAt' | 'filmId' | 'filmFormat' | 'exposures' | 'boxIso' | 'isDeveloped';

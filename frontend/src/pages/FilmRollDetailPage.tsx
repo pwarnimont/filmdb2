@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import type {ReactNode} from 'react';
 import {
   Alert,
   Box,
@@ -139,7 +140,23 @@ function FilmRollDetailPage() {
             </Grid>
             <Grid item xs={12} md={6}>
               <InfoRow label="Date Shot" value={formatDate(film.dateShot)} />
-              <InfoRow label="Camera" value={film.cameraName ?? '—'} />
+              <InfoRow
+                label="Camera"
+                value={
+                  film.camera ? (
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography variant="body2" fontWeight={500}>
+                        {`${film.camera.manufacturer} ${film.camera.model}`}
+                      </Typography>
+                      <Button size="small" onClick={() => navigate(`/cameras?cameraId=${film.camera?.id}`)}>
+                        View
+                      </Button>
+                    </Stack>
+                  ) : (
+                    film.cameraName ?? '—'
+                  )
+                }
+              />
               <InfoRow label="Developed" value={film.isDeveloped ? 'Yes' : 'No'} />
               <InfoRow
                 label="Scanned"
@@ -232,15 +249,19 @@ function FilmRollDetailPage() {
   );
 }
 
-function InfoRow({label, value}: {label: string; value: string | number}) {
+function InfoRow({label, value}: {label: string; value: ReactNode}) {
   return (
     <Box sx={{display: 'flex', justifyContent: 'space-between', py: 0.5}}>
       <Typography variant="body2" color="text.secondary">
         {label}
       </Typography>
-      <Typography variant="body2" fontWeight={500}>
-        {value}
-      </Typography>
+      {typeof value === 'string' || typeof value === 'number' ? (
+        <Typography variant="body2" fontWeight={500}>
+          {value}
+        </Typography>
+      ) : (
+        value
+      )}
     </Box>
   );
 }

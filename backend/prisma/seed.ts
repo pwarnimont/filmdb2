@@ -8,6 +8,7 @@ type SeedFilmRoll = {
   shotIso?: number | null;
   dateShot?: Date | null;
   cameraName?: string | null;
+  cameraKey?: string | null;
   filmFormat: FilmFormat;
   exposures: number;
   isDeveloped?: boolean;
@@ -35,6 +36,17 @@ type SeedFilmRoll = {
 };
 
 const prisma = new PrismaClient();
+
+type SeedCamera = {
+  key: string;
+  manufacturer: string;
+  model: string;
+  releaseDate?: Date | null;
+  purchaseDate?: Date | null;
+  filmType: string;
+  lenses: string[];
+  notes?: string | null;
+};
 
 async function main() {
   const defaultAllowRegistration = process.env.DEFAULT_ALLOW_REGISTRATION !== 'false';
@@ -82,6 +94,29 @@ async function main() {
     }
   });
 
+  const cameraSeeds: SeedCamera[] = [
+    {
+      key: 'canon-ae1',
+      manufacturer: 'Canon',
+      model: 'AE-1 Program',
+      releaseDate: new Date('1981-04-01'),
+      purchaseDate: new Date('2019-07-22'),
+      filmType: '35mm',
+      lenses: ['FD 50mm f/1.8', 'FD 35mm f/2', 'FD 85mm f/1.8'],
+      notes: 'Everyday carry 35mm body.'
+    },
+    {
+      key: 'mamiya-rb67',
+      manufacturer: 'Mamiya',
+      model: 'RB67 Pro SD',
+      releaseDate: new Date('1990-01-01'),
+      purchaseDate: new Date('2021-03-02'),
+      filmType: '120',
+      lenses: ['Sekor C 90mm f/3.8', 'Sekor C 180mm f/4.5'],
+      notes: 'Studio portrait camera.'
+    }
+  ];
+
   const baseRolls: SeedFilmRoll[] = [
     {
       filmId: 'KG200-001',
@@ -89,7 +124,7 @@ async function main() {
       boxIso: 200,
       shotIso: 200,
       dateShot: new Date('2023-10-01'),
-      cameraName: 'Canon AE-1',
+      cameraKey: 'canon-ae1',
       filmFormat: FilmFormat.format35mm,
       exposures: 36,
       isDeveloped: true,
@@ -141,7 +176,7 @@ async function main() {
       boxIso: 400,
       shotIso: 800,
       dateShot: new Date('2023-11-12'),
-      cameraName: 'Mamiya RB67',
+      cameraKey: 'mamiya-rb67',
       filmFormat: FilmFormat.format6x7,
       exposures: 10,
       isDeveloped: false,
@@ -153,7 +188,7 @@ async function main() {
       boxIso: 160,
       shotIso: 160,
       dateShot: null,
-      cameraName: null,
+      cameraKey: null,
       filmFormat: FilmFormat.format35mm,
       exposures: 36,
       isDeveloped: false,
@@ -168,6 +203,39 @@ async function main() {
     }
   });
 
+  await prisma.camera.deleteMany({
+    where: {
+      userId: {in: [admin.id, regular.id]}
+    }
+  });
+
+  const cameraLookup = new Map<
+    string,
+    {
+      id: string;
+      label: string;
+    }
+  >();
+
+  for (const camera of cameraSeeds) {
+    const created = await prisma.camera.create({
+      data: {
+        manufacturer: camera.manufacturer,
+        model: camera.model,
+        releaseDate: camera.releaseDate ?? null,
+        purchaseDate: camera.purchaseDate ?? null,
+        filmType: camera.filmType,
+        lenses: camera.lenses,
+        notes: camera.notes ?? null,
+        userId: regular.id
+      }
+    });
+    cameraLookup.set(camera.key, {
+      id: created.id,
+      label: `${camera.manufacturer} ${camera.model}`.trim()
+    });
+  }
+
   for (const roll of baseRolls) {
     const created = await prisma.filmRoll.create({
       data: {
@@ -176,7 +244,10 @@ async function main() {
         boxIso: roll.boxIso,
         shotIso: roll.shotIso,
         dateShot: roll.dateShot,
-        cameraName: roll.cameraName,
+        cameraName:
+          roll.cameraName ??
+          (roll.cameraKey ? cameraLookup.get(roll.cameraKey)?.label ?? null : null),
+        cameraId: roll.cameraKey ? cameraLookup.get(roll.cameraKey)?.id ?? null : null,
         filmFormat: roll.filmFormat,
         exposures: roll.exposures,
         isDeveloped: roll.isDeveloped ?? false,

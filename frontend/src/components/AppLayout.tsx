@@ -25,6 +25,7 @@ import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshopOutlined';
 import MenuIcon from '@mui/icons-material/MenuOutlined';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCameraOutlined';
 import {Outlet, useLocation, useNavigate} from 'react-router-dom';
 
 import ThemeModeContext from '../contexts/ThemeModeContext';
@@ -105,6 +106,11 @@ export function AppLayout() {
       label: 'Film Rolls',
       path: '/film-rolls',
       icon: <MovieFilterIcon />
+    },
+    {
+      label: 'Cameras',
+      path: '/cameras',
+      icon: <PhotoCameraIcon />
     },
     {
       label: 'Prints',

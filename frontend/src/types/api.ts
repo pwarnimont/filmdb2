@@ -30,6 +30,8 @@ export interface FilmRoll {
   shotIso: number | null;
   dateShot: string | null;
   cameraName: string | null;
+  cameraId: string | null;
+  camera?: FilmRollCamera;
   filmFormat: FilmFormat;
   exposures: number;
   isDeveloped: boolean;
@@ -49,6 +51,7 @@ export interface FilmRollPayload {
   shotIso?: number | null;
   dateShot?: string | null;
   cameraName?: string | null;
+  cameraId?: string | null;
   filmFormat: FilmFormat;
   exposures: number;
   isDeveloped?: boolean;
@@ -122,20 +125,87 @@ export interface BackupSnapshot {
   generatedAt: string;
   filmRolls: FilmRoll[];
   prints: Print[];
+  cameras: CameraBackup[];
   users?: UserBackup[];
 }
 
 export interface BackupImportPayload {
   filmRolls: FilmRoll[];
   prints?: Print[];
+  cameras?: CameraBackup[];
   users?: UserBackup[];
 }
 
 export interface BackupImportSummary {
   filmRollsCreated: number;
   filmRollsUpdated: number;
+  camerasCreated: number;
+  camerasUpdated: number;
   printsCreated: number;
   printsUpdated: number;
+}
+
+export interface FilmRollCamera {
+  id: string;
+  manufacturer: string;
+  model: string;
+  filmType: string;
+  releaseDate: string | null;
+  purchaseDate: string | null;
+}
+
+export interface CameraFilmReference {
+  id: string;
+  filmName: string;
+  filmId: string;
+  dateShot: string | null;
+}
+
+export interface Camera {
+  id: string;
+  manufacturer: string;
+  model: string;
+  releaseDate: string | null;
+  purchaseDate: string | null;
+  filmType: string;
+  lenses: string[];
+  notes: string | null;
+  linkedFilmRolls: CameraFilmReference[];
+  linkedFilmRollsCount: number;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+}
+
+export interface CameraPayload {
+  manufacturer: string;
+  model: string;
+  releaseDate?: string | null;
+  purchaseDate?: string | null;
+  filmType: string;
+  lenses: string[];
+  notes?: string | null;
+}
+
+export interface PaginatedCameras {
+  items: Camera[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface CameraBackup {
+  id: string;
+  manufacturer: string;
+  model: string;
+  releaseDate: string | null;
+  purchaseDate: string | null;
+  filmType: string;
+  lenses: string[];
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
 }
 
 export interface ApiError {

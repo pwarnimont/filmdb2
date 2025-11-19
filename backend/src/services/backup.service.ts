@@ -4,6 +4,7 @@ import createHttpError from 'http-errors';
 import {prisma} from '../config/prisma';
 import type {BackupPayload, PrintBackup, UserBackup} from '../schemas/backup.schema';
 import {filmRollService} from './film-roll.service';
+import {cameraService} from './camera.service';
 import {printService} from './print.service';
 import type {PrintDto} from './print.service';
 import type {UserRolePayload} from '../types/user';
@@ -32,9 +33,10 @@ const serializeSplitGradeSteps = (
 
 class BackupService {
   async exportForUser(user: UserRolePayload) {
-    const [filmRolls, prints, users] = await Promise.all([
+    const [filmRolls, prints, cameras, users] = await Promise.all([
       filmRollService.exportAll(user),
       printService.exportAll(user),
+      cameraService.exportAll(user),
       user.role === 'ADMIN'
         ? prisma.user.findMany({
             orderBy: {createdAt: 'asc'}
@@ -54,9 +56,24 @@ class BackupService {
       prints: grouped.get(roll.id) ?? []
     }));
 
+    const cameraSnapshots = cameras.map((camera) => ({
+      id: camera.id,
+      manufacturer: camera.manufacturer,
+      model: camera.model,
+      releaseDate: camera.releaseDate ? camera.releaseDate.toISOString() : null,
+      purchaseDate: camera.purchaseDate ? camera.purchaseDate.toISOString() : null,
+      filmType: camera.filmType,
+      lenses: camera.lenses,
+      notes: camera.notes ?? null,
+      createdAt: camera.createdAt.toISOString(),
+      updatedAt: camera.updatedAt.toISOString(),
+      userId: camera.userId
+    }));
+
     return {
       filmRolls: filmRollsWithPrints,
       prints,
+      cameras: cameraSnapshots,
       users: users ?? undefined
     };
   }
@@ -66,7 +83,10 @@ class BackupService {
     let filmRollsUpdated = 0;
     let printsCreated = 0;
     let printsUpdated = 0;
+    let camerasCreated = 0;
+    let camerasUpdated = 0;
 
+    const cameraOwnerCache = new Map<string, string>();
     const filmRollOwnerCache = new Map<string, string>();
     const aggregatedPrints = new Map<string, PrintBackup>();
 
@@ -74,6 +94,90 @@ class BackupService {
       if (user.role === 'ADMIN' && payload.users && payload.users.length > 0) {
         await this.upsertUsers(tx, payload.users);
       }
+
+      for (const camera of payload.cameras ?? []) {
+        const existing = await tx.camera.findUnique({where: {id: camera.id}});
+        const targetUserId = user.role === 'ADMIN' ? camera.userId : user.id;
+
+        if (existing && user.role !== 'ADMIN' && existing.userId !== user.id) {
+          throw createHttpError(
+            403,
+            `Cannot import camera ${camera.id} owned by another user`
+          );
+        }
+
+        const cameraData = {
+          manufacturer: camera.manufacturer,
+          model: camera.model,
+          releaseDate: camera.releaseDate ? new Date(camera.releaseDate) : null,
+          purchaseDate: camera.purchaseDate ? new Date(camera.purchaseDate) : null,
+          filmType: camera.filmType,
+          lenses: camera.lenses,
+          notes: trimOrNull(camera.notes),
+          userId: targetUserId
+        };
+
+        if (existing) {
+          await tx.camera.update({
+            where: {id: camera.id},
+            data: cameraData
+          });
+          camerasUpdated += 1;
+        } else {
+          await tx.camera.create({
+            data: {
+              id: camera.id,
+              ...cameraData,
+              createdAt: new Date(camera.createdAt)
+            }
+          });
+          camerasCreated += 1;
+        }
+
+        cameraOwnerCache.set(camera.id, targetUserId);
+      }
+
+      const resolveCameraForUser = async (
+        cameraId: string | null | undefined,
+        targetUserId: string
+      ): Promise<string | null> => {
+        if (!cameraId) {
+          return null;
+        }
+
+        const owner =
+          cameraOwnerCache.get(cameraId) ??
+          (await (async () => {
+            const record = await tx.camera.findUnique({
+              where: {id: cameraId},
+              select: {userId: true}
+            });
+            if (!record) {
+              return null;
+            }
+            cameraOwnerCache.set(cameraId, record.userId);
+            return record.userId;
+          })());
+
+        if (!owner) {
+          return null;
+        }
+
+        if (owner !== targetUserId) {
+          if (user.role === 'ADMIN') {
+            throw createHttpError(
+              400,
+              `Camera ${cameraId} does not belong to user ${targetUserId}`
+            );
+          }
+          throw createHttpError(
+            403,
+            `Cannot link film roll to camera owned by another user`
+          );
+        }
+
+        return cameraId;
+      };
 
       for (const roll of payload.filmRolls) {
         const existing = await tx.filmRoll.findUnique({
@@ -86,6 +190,8 @@ class BackupService {
           throw createHttpError(403, `Cannot import film roll ${roll.id} owned by another user`);
         }
 
+        const linkedCameraId = await resolveCameraForUser(roll.cameraId, targetUserId);
+
         const rollData = {
           filmId: roll.filmId,
           filmName: roll.filmName,
@@ -93,6 +199,7 @@ class BackupService {
           shotIso: roll.shotIso,
           dateShot: roll.dateShot ? new Date(roll.dateShot) : null,
           cameraName: trimOrNull(roll.cameraName),
+          cameraId: linkedCameraId,
           filmFormat: parseFilmFormat(roll.filmFormat),
           exposures: roll.exposures,
           isDeveloped: roll.isDeveloped,
@@ -222,6 +329,8 @@ class BackupService {
     return {
       filmRollsCreated,
       filmRollsUpdated,
+      camerasCreated,
+      camerasUpdated,
       printsCreated,
       printsUpdated
     };
