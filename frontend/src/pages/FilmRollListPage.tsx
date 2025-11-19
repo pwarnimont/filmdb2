@@ -3,7 +3,6 @@ import type {ChangeEvent, ReactNode} from 'react';
 import {
   Box,
   Button,
-  Collapse,
   Divider,
   Dialog,
   DialogContent,
@@ -29,7 +28,6 @@ import CheckIcon from '@mui/icons-material/CheckCircleOutline';
 import CloseIcon from '@mui/icons-material/Close';
 import PrintIcon from '@mui/icons-material/PrintOutlined';
 import UploadIcon from '@mui/icons-material/UploadOutlined';
-import TimelineIcon from '@mui/icons-material/TimelineOutlined';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useNavigate} from 'react-router-dom';
 
@@ -48,10 +46,6 @@ import type {
 } from '../types/api';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {DevelopmentForm} from '../components/DevelopmentForm';
-import {
-  DevelopmentHistoryHeatmap,
-  type DevelopmentHistoryMap
-} from '../components/DevelopmentHistoryHeatmap';
 import {useSnackbar} from '../providers/SnackbarProvider';
 import {detectFilmBrand} from '../utils/filmBrand';
 import {FilmBrandLogo} from '../components/FilmBrandLogo';
@@ -66,7 +60,6 @@ function FilmRollListPage() {
   const [selectedForDelete, setSelectedForDelete] = useState<FilmRoll | null>(null);
   const [selectedForDevelop, setSelectedForDevelop] = useState<FilmRoll | null>(null);
   const [selectedForDetails, setSelectedForDetails] = useState<FilmRoll | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
   const snackbar = useSnackbar();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -240,68 +233,6 @@ function FilmRollListPage() {
       };
     }
   });
-
-  const {data: historySource, isLoading: historyLoading, isFetching: historyFetching} = useQuery({
-    queryKey: ['film-rolls', 'history'],
-    staleTime: 1000 * 60 * 2,
-    enabled: showHistory,
-    queryFn: async () => {
-      const pageSize = 100; // backend max page size per film-roll.schema
-      let page = 1;
-      let total = Infinity;
-      const collected: FilmRoll[] = [];
-
-      while (collected.length < total) {
-        const response = await listFilmRolls({page, pageSize});
-        collected.push(...response.items);
-        total = response.total;
-        if (response.items.length < pageSize) {
-          break;
-        }
-        page += 1;
-      }
-
-      return collected;
-    }
-  });
-
-  const historyMap = useMemo<DevelopmentHistoryMap>(() => {
-    if (!historySource) {
-      return {};
-    }
-
-    const map: DevelopmentHistoryMap = {};
-
-    const addEntry = (value: string | null | undefined, type: 'shot' | 'developed') => {
-      if (!value) {
-        return;
-      }
-      const parsed = new Date(value);
-      if (Number.isNaN(parsed.getTime())) {
-        return;
-      }
-      parsed.setHours(0, 0, 0, 0);
-      const key = `${parsed.getFullYear()}-${`${parsed.getMonth() + 1}`.padStart(2, '0')}-${`${parsed.getDate()}`.padStart(2, '0')}`;
-
-      const existing = map[key] ?? {total: 0, shot: 0, developed: 0};
-      if (type === 'shot') {
-        existing.shot += 1;
-      } else {
-        existing.developed += 1;
-      }
-      existing.total = existing.shot + existing.developed;
-      map[key] = existing;
-    };
-
-    for (const roll of historySource) {
-      addEntry(roll.dateShot, 'shot');
-      addEntry(roll.development?.dateDeveloped, 'developed');
-    }
-
-    return map;
-  }, [historySource]);
-
-  const heatmapLoading = showHistory && (historyLoading || historyFetching) && !historySource;
 
   const columns = useMemo<GridColDef<FilmRoll>[]>(
     () => [
@@ -483,20 +414,6 @@ function FilmRollListPage() {
         hidden
       />
       <StatisticsStrip stats={stats} loading={statsLoading} />
-      <Stack spacing={1.5}>
-        <Button
-          variant={showHistory ? 'contained' : 'outlined'}
-          color="success"
-          startIcon={<TimelineIcon />}
-          onClick={() => setShowHistory((prev) => !prev)}
-          sx={{alignSelf: {xs: 'stretch', sm: 'flex-start'}}}
-        >
-          {showHistory ? 'Hide Development History' : 'Show Development History'}
-        </Button>
-        <Collapse in={showHistory} timeout="auto" unmountOnExit>
-          <DevelopmentHistoryHeatmap data={historyMap} loading={heatmapLoading} />
-        </Collapse>
-      </Stack>
       <Stack direction={{xs: 'column', md: 'row'}} spacing={2} alignItems={{md: 'center'}}>
         <TextField
           label="Search"
