@@ -132,25 +132,23 @@ export function AppLayout() {
   const drawerContent = (
     <Stack spacing={2} sx={{height: '100%'}}>
       <Stack
-        direction="row"
-        alignItems="center"
-        spacing={1.5}
+        spacing={1}
         sx={{
-          cursor: 'pointer',
           px: isNavCollapsed ? 0 : 1,
           width: '100%',
-          position: 'relative'
+          alignItems: isNavCollapsed ? 'center' : 'stretch'
         }}
       >
         <Stack
           direction="row"
           alignItems="center"
-          spacing={1.5}
+          spacing={isNavCollapsed ? 0 : 1.5}
           onClick={handleNavigate('/film-rolls')}
           sx={{
             flexGrow: 1,
             justifyContent: isNavCollapsed ? 'center' : 'flex-start',
-            width: '100%'
+            width: '100%',
+            cursor: 'pointer'
           }}
         >
           <Box
@@ -169,9 +167,8 @@ export function AppLayout() {
               onClick={toggleNavCollapse}
               size="small"
               sx={{
-                position: 'absolute',
-                right: isNavCollapsed ? 4 : 0,
-                transform: 'translateX(50%)',
+                ml: isNavCollapsed ? 0 : 1,
+                alignSelf: isNavCollapsed ? 'center' : 'flex-start',
                 border: `1px solid ${alpha(theme.palette.divider, 0.6)}`
               }}
             >
