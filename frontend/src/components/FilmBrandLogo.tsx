@@ -31,14 +31,64 @@ const BRAND_VISUALS: Record<FilmBrand, BrandVisual> = {
     label: 'Fujifilm'
   },
   Agfa: {
-    background: '#E84639',
+    background: 'linear-gradient(135deg, #E84639 0%, #B90F0A 100%)',
     foreground: '#ffffff',
     label: 'Agfa'
+  },
+  AgfaGevaert: {
+    background: '#B9140D',
+    foreground: '#FFFFFF',
+    label: 'Agfa-Gevaert'
+  },
+  AgfaPhoto: {
+    background: 'linear-gradient(90deg, #D90429 0%, #9D0208 100%)',
+    foreground: '#FFFFFF',
+    label: 'AgfaPhoto'
+  },
+  ADOX: {
+    background: '#B71C1C',
+    foreground: '#FFFFFF',
+    label: 'ADOX'
+  },
+  Foma: {
+    background: '#003D63',
+    foreground: '#F6F9FC',
+    label: 'Foma'
   },
   Cinestill: {
     background: '#c62828',
     foreground: '#ffffff',
     label: 'CineStill'
+  },
+  Ferrania: {
+    background: '#0052A5',
+    foreground: '#FFFFFF',
+    label: 'Ferrania'
+  },
+  FilmWashi: {
+    background: '#1C1C1C',
+    foreground: '#F5F5F5',
+    label: 'Film Washi'
+  },
+  Holga: {
+    background: '#009688',
+    foreground: '#FFFFFF',
+    label: 'Holga'
+  },
+  Kentmere: {
+    background: '#0F5DA2',
+    foreground: '#FFFFFF',
+    label: 'Kentmere'
+  },
+  Lomography: {
+    background: '#C2185B',
+    foreground: '#FFFFFF',
+    label: 'Lomography'
+  },
+  Polaroid: {
+    background: 'linear-gradient(90deg, #FF8C00 0%, #FFD700 40%, #00A1FF 80%)',
+    foreground: '#1A1A1A',
+    label: 'Polaroid'
   },
   Rollei: {
     background: '#646369',
@@ -66,7 +116,7 @@ export function FilmBrandLogo({brand, size = 36, showLabel = false}: FilmBrandLo
           minWidth: `${minWidth}px`,
           height: size,
           borderRadius: 0,
-          backgroundColor: visual.background,
+          background: visual.background,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

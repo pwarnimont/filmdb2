@@ -3,7 +3,17 @@ export type FilmBrand =
   | 'Ilford'
   | 'Fujifilm'
   | 'Agfa'
+  | 'AgfaGevaert'
+  | 'AgfaPhoto'
+  | 'ADOX'
+  | 'Foma'
   | 'Cinestill'
+  | 'Ferrania'
+  | 'FilmWashi'
+  | 'Holga'
+  | 'Kentmere'
+  | 'Lomography'
+  | 'Polaroid'
   | 'Rollei'
   | 'Other';
 
@@ -40,8 +50,48 @@ const brandRules: BrandRule[] = [
     patterns: [/agfa/i, /vista/i, /apx/i]
   },
   {
+    brand: 'AgfaGevaert',
+    patterns: [/agfa[-\s]?gevaert/i, /avi ?phot/i]
+  },
+  {
+    brand: 'AgfaPhoto',
+    patterns: [/agfa ?photo/i, /precisa/i]
+  },
+  {
+    brand: 'ADOX',
+    patterns: [/adox/i, /cms/i, /silvermax/i, /hr-50/i]
+  },
+  {
+    brand: 'Foma',
+    patterns: [/foma/i, /fomapan/i, /retropan/i]
+  },
+  {
     brand: 'Cinestill',
     patterns: [/cinestill/i, /800t/i, /50d/i]
+  },
+  {
+    brand: 'Ferrania',
+    patterns: [/ferrania/i, /p30/i]
+  },
+  {
+    brand: 'FilmWashi',
+    patterns: [/washi/i]
+  },
+  {
+    brand: 'Holga',
+    patterns: [/holga/i]
+  },
+  {
+    brand: 'Kentmere',
+    patterns: [/kentmere/i]
+  },
+  {
+    brand: 'Lomography',
+    patterns: [/lomography/i, /lomochrome/i, /lomo/i]
+  },
+  {
+    brand: 'Polaroid',
+    patterns: [/polaroid/i, /sx-?70/i, /i[-\s]?type/i]
   },
   {
     brand: 'Rollei',
