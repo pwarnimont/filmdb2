@@ -52,6 +52,20 @@ const cameraInclude = {
   }
 } satisfies Prisma.CameraInclude;
 
+const cameraExportInclude = {
+  filmRolls: {
+    select: {
+      id: true,
+      filmId: true,
+      filmName: true,
+      dateShot: true
+    },
+    orderBy: {
+      dateShot: 'desc'
+    }
+  }
+} satisfies Prisma.CameraInclude;
+
 type CameraRecord = Prisma.CameraGetPayload<{include: typeof cameraInclude}>;
 
 function toDto(record: CameraRecord): CameraDto {
@@ -190,7 +204,8 @@ class CameraService {
     const where: Prisma.CameraWhereInput = user.role === 'ADMIN' ? {} : {userId: user.id};
     const records = await prisma.camera.findMany({
       where,
-      orderBy: {createdAt: 'asc'}
+      orderBy: {createdAt: 'asc'},
+      include: cameraExportInclude
     });
     return records;
   }

@@ -23,6 +23,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import CameraRollIcon from '@mui/icons-material/CameraRoll';
 import MovieFilterIcon from '@mui/icons-material/MovieFilterOutlined';
 import AddIcon from '@mui/icons-material/AddOutlined';
+import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useNavigate, useSearchParams} from 'react-router-dom';
 
@@ -262,9 +265,63 @@ function CameraListPage() {
               No rolls linked
             </Typography>
           )
+      },
+      {
+        field: 'actions',
+        headerName: 'Actions',
+        width: 150,
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: ({row}) => (
+          <Stack direction="row" spacing={0.5}>
+            <Tooltip title="View">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleSelectCamera(row);
+                  }}
+                >
+                  <VisibilityIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Edit">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setFormState({mode: 'edit', camera: row});
+                  }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Delete">
+              <span>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setDeleteTarget(row);
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
+        )
       }
     ],
-    [navigate]
+    [handleSelectCamera, navigate, setFormState, setDeleteTarget]
   );
 
   const statsChips = Object.entries(stats.filmTypeMap).map(([type, count]) => `${type.toUpperCase()} ×${count}`);

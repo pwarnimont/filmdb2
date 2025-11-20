@@ -67,7 +67,14 @@ class BackupService {
       notes: camera.notes ?? null,
       createdAt: camera.createdAt.toISOString(),
       updatedAt: camera.updatedAt.toISOString(),
-      userId: camera.userId
+      userId: camera.userId,
+      linkedFilmRolls: camera.filmRolls.map((roll) => ({
+        id: roll.id,
+        filmId: roll.filmId,
+        filmName: roll.filmName,
+        dateShot: roll.dateShot ? roll.dateShot.toISOString() : null
+      })),
+      linkedFilmRollsCount: camera.filmRolls.length
     }));
 
     return {

@@ -59,6 +59,13 @@ export const filmRollBackupSchema = z.object({
   prints: z.array(printBackupSchema).optional().default([])
 });
 
+const cameraFilmReferenceSchema = z.object({
+  id: z.string(),
+  filmId: z.string(),
+  filmName: z.string(),
+  dateShot: isoDateTime.nullable()
+});
+
 export const cameraBackupSchema = z.object({
   id: z.string(),
   manufacturer: z.string(),
@@ -70,7 +77,9 @@ export const cameraBackupSchema = z.object({
   notes: z.string().nullable(),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
-  userId: z.string()
+  userId: z.string(),
+  linkedFilmRolls: z.array(cameraFilmReferenceSchema),
+  linkedFilmRollsCount: z.number().int()
 });
 
 export const userBackupSchema = z.object({

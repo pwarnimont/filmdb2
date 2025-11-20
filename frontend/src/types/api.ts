@@ -206,6 +206,8 @@ export interface CameraBackup {
   createdAt: string;
   updatedAt: string;
   userId: string;
+  linkedFilmRolls: CameraFilmReference[];
+  linkedFilmRollsCount: number;
 }
 
 export interface ApiError {
