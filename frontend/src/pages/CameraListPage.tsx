@@ -1,13 +1,18 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import type {ReactNode} from 'react';
 import {
   Box,
   Button,
+  Card,
+  CardContent,
+  CardHeader,
   Chip,
   Dialog,
   DialogContent,
   DialogTitle,
   Divider,
   Drawer,
+  Grid,
   IconButton,
   MenuItem,
   Paper,
@@ -705,159 +710,162 @@ function CameraDetailsView({
   onCreateRoll: () => void;
   onSelectRoll: (filmRollId: string) => void;
 }) {
-  const stats: Array<{label: string; value: string | number}> = [
-    {label: 'Film Type', value: camera.filmType.toUpperCase()},
-    {label: 'Linked Rolls', value: camera.linkedFilmRollsCount},
-    {label: 'Lenses', value: camera.lenses.length}
-  ];
-
-  const formatDate = (value: string | null) =>
-    value ? new Date(value).toLocaleDateString() : '—';
+  const formatDate = (value: string | null) => (value ? new Date(value).toLocaleDateString() : '—');
 
   return (
-    <Box sx={{height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.default'}}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          px: {xs: 2, md: 4},
-          py: 2,
-          borderBottom: '1px solid',
-          borderColor: 'divider'
-        }}
-      >
-        <Stack spacing={0.5}>
-          <Typography variant="overline" color="text.secondary">
-            Camera
-          </Typography>
+    <Box
+      sx={{
+        height: '100%',
+        overflowY: 'auto',
+        bgcolor: 'background.default',
+        display: 'flex',
+        justifyContent: 'center'
+      }}
+    >
+      <Stack spacing={3} sx={{p: {xs: 2, md: 4}, pb: 6, width: '100%', maxWidth: 1280}}>
+        <Stack
+          direction={{xs: 'column', sm: 'row'}}
+          spacing={2}
+          justifyContent="space-between"
+          alignItems={{xs: 'flex-start', sm: 'center'}}
+        >
           <Typography variant="h4">
             {camera.manufacturer} {camera.model}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Added {new Date(camera.createdAt).toLocaleDateString()}
-          </Typography>
-        </Stack>
-        <IconButton onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-      </Box>
-
-      <Box
-        sx={{
-          flexGrow: 1,
-          overflowY: 'auto',
-          px: {xs: 2, md: 4},
-          py: {xs: 2, md: 3},
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 3
-        }}
-      >
-        <Stack direction={{xs: 'column', md: 'row'}} spacing={2}>
-          {stats.map((stat) => (
-            <Paper
-              key={stat.label}
-              variant="outlined"
-              sx={{flex: 1, px: 3, py: 2.5, borderRadius: 2, minWidth: 0}}
+          <Stack direction={{xs: 'column', sm: 'row'}} spacing={1} sx={{width: {xs: '100%', sm: 'auto'}}}>
+            <Button variant="outlined" startIcon={<EditIcon />} onClick={onEdit} sx={{width: {xs: '100%', sm: 'auto'}}}>
+              Edit Camera
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={onCreateRoll}
+              sx={{width: {xs: '100%', sm: 'auto'}}}
             >
-              <Typography variant="caption" color="text.secondary">
-                {stat.label}
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {stat.value}
-              </Typography>
-            </Paper>
-          ))}
-        </Stack>
-
-        <Stack spacing={1.5}>
-          <Typography variant="subtitle1">Specifications</Typography>
-          <Stack spacing={1}>
-            <DetailRow label="Release Date" value={formatDate(camera.releaseDate)} />
-            <DetailRow label="Purchase Date" value={formatDate(camera.purchaseDate)} />
-            <DetailRow label="Film Type" value={camera.filmType.toUpperCase()} />
+              Log Film Roll
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={onDelete}
+              sx={{width: {xs: '100%', sm: 'auto'}}}
+            >
+              Delete
+            </Button>
+            <Button startIcon={<CloseIcon />} onClick={onClose} sx={{width: {xs: '100%', sm: 'auto'}}}>
+              Close
+            </Button>
           </Stack>
         </Stack>
 
-        <Stack spacing={1.5}>
-          <Typography variant="subtitle1">Lenses</Typography>
-          {camera.lenses.length ? (
-            <Stack direction="row" spacing={1} flexWrap="wrap">
-              {camera.lenses.map((lens) => (
-                <Chip key={lens} label={lens} variant="outlined" color="secondary" />
-              ))}
-            </Stack>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              No lenses recorded for this camera.
-            </Typography>
-          )}
-        </Stack>
+        <Card>
+          <CardHeader
+            title="Details"
+            subheader={`Added ${formatDate(camera.createdAt)}`}
+            action={<PhotoCameraIcon color="primary" fontSize="large" />}
+          />
+          <CardContent>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <InfoRow label="Manufacturer" value={camera.manufacturer} />
+                <InfoRow label="Model" value={camera.model} />
+                <InfoRow label="Film Type" value={camera.filmType.toUpperCase()} />
+                <InfoRow label="Linked Rolls" value={camera.linkedFilmRollsCount} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <InfoRow label="Release Date" value={formatDate(camera.releaseDate)} />
+                <InfoRow label="Purchase Date" value={formatDate(camera.purchaseDate)} />
+                <InfoRow label="Last Updated" value={formatDate(camera.updatedAt)} />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader title="Lenses" subheader={`${camera.lenses.length} saved`} />
+          <CardContent>
+            {camera.lenses.length ? (
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {camera.lenses.map((lens) => (
+                  <Chip key={lens} label={lens} variant="outlined" color="secondary" />
+                ))}
+              </Stack>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No lenses recorded for this camera.
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Linked Film Rolls"
+            subheader={
+              camera.linkedFilmRolls.length
+                ? `${camera.linkedFilmRolls.length} linked`
+                : 'No rolls linked yet'
+            }
+            action={<CameraRollIcon color="primary" />}
+          />
+          <CardContent>
+            {camera.linkedFilmRolls.length ? (
+              <Stack spacing={1.5} divider={<Divider flexItem />}>
+                {camera.linkedFilmRolls.map((roll) => (
+                  <Stack
+                    key={roll.id}
+                    direction={{xs: 'column', sm: 'row'}}
+                    justifyContent="space-between"
+                    spacing={1}
+                    alignItems={{sm: 'center'}}
+                  >
+                    <Stack spacing={0.25}>
+                      <Typography variant="subtitle2">{roll.filmName}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {roll.filmId} • {formatDate(roll.dateShot)}
+                      </Typography>
+                    </Stack>
+                    <Button size="small" onClick={() => onSelectRoll(roll.id)}>
+                      View Roll
+                    </Button>
+                  </Stack>
+                ))}
+              </Stack>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Link rolls when logging film to keep your collection organized.
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
 
         {camera.notes && (
-          <Stack spacing={1.5}>
-            <Typography variant="subtitle1">Notes</Typography>
-            <Typography variant="body2">{camera.notes}</Typography>
-          </Stack>
+          <Card>
+            <CardHeader title="Notes" />
+            <CardContent>
+              <Typography variant="body2">{camera.notes}</Typography>
+            </CardContent>
+          </Card>
         )}
-
-        <Stack spacing={1.5}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <CameraRollIcon color="primary" />
-            <Typography variant="subtitle1">Linked Film Rolls</Typography>
-          </Stack>
-          {camera.linkedFilmRolls.length ? (
-            <Stack spacing={1.5}>
-              {camera.linkedFilmRolls.map((roll) => (
-                <Paper
-                  key={roll.id}
-                  variant="outlined"
-                  sx={{
-                    px: 2,
-                    py: 1.5,
-                    borderRadius: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 2
-                  }}
-                >
-                  <Stack spacing={0.25}>
-                    <Typography variant="subtitle2">{roll.filmName}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {roll.filmId} • {roll.dateShot ? new Date(roll.dateShot).toLocaleDateString() : 'Date unknown'}
-                    </Typography>
-                  </Stack>
-                  <Button size="small" onClick={() => onSelectRoll(roll.id)}>
-                    View Roll
-                  </Button>
-                </Paper>
-              ))}
-            </Stack>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              No film rolls linked yet. Link rolls when logging film to keep your collection organized.
-            </Typography>
-          )}
-        </Stack>
-      </Box>
-
-      <Divider />
-      <Stack spacing={1.5} sx={{px: {xs: 2, md: 4}, py: 2}}>
-        <Stack direction={{xs: 'column', sm: 'row'}} spacing={1.5}>
-          <Button variant="contained" startIcon={<EditIcon />} onClick={onEdit}>
-            Edit Camera
-          </Button>
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={onCreateRoll}>
-            Log Film Roll
-          </Button>
-          <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={onDelete}>
-            Delete Camera
-          </Button>
-        </Stack>
-        <Button onClick={onClose}>Close</Button>
       </Stack>
+    </Box>
+  );
+}
+
+function InfoRow({label, value}: {label: string; value: ReactNode}) {
+  return (
+    <Box sx={{display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5}}>
+      <Typography variant="body2" color="text.secondary">
+        {label}
+      </Typography>
+      {typeof value === 'string' || typeof value === 'number' ? (
+        <Typography variant="body2" fontWeight={500}>
+          {value}
+        </Typography>
+      ) : (
+        value
+      )}
     </Box>
   );
 }

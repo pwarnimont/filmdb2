@@ -251,18 +251,18 @@ function FilmRollDetailPage() {
 
 function InfoRow({label, value}: {label: string; value: ReactNode}) {
   return (
-    <Box sx={{display: 'flex', justifyContent: 'space-between', py: 0.5}}>
-      <Typography variant="body2" color="text.secondary">
+    <Stack spacing={0.25} sx={{py: 0.5}}>
+      <Typography variant="caption" color="text.secondary">
         {label}
       </Typography>
       {typeof value === 'string' || typeof value === 'number' ? (
-        <Typography variant="body2" fontWeight={500}>
+        <Typography variant="body1" fontWeight={500}>
           {value}
         </Typography>
       ) : (
         value
       )}
-    </Box>
+    </Stack>
   );
 }
 
