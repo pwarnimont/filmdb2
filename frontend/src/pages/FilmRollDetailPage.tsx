@@ -19,6 +19,7 @@ import {useNavigate, useParams} from 'react-router-dom';
 
 import {
   deleteDevelopment,
+  deleteFilmRoll,
   getFilmRoll,
   markDeveloped,
   upsertDevelopment
@@ -52,6 +53,7 @@ function FilmRollDetailPage() {
   const [developmentDialogOpen, setDevelopmentDialogOpen] = useState(false);
   const [markDialogOpen, setMarkDialogOpen] = useState(false);
   const [confirmDeleteDevelopment, setConfirmDeleteDevelopment] = useState(false);
+  const [confirmDeleteRoll, setConfirmDeleteRoll] = useState(false);
 
   const {data, isLoading, isError} = useQuery({
     queryKey: ['film-roll', id],
@@ -94,6 +96,17 @@ function FilmRollDetailPage() {
     onError: () => snackbar.showMessage('Could not delete development', 'error')
   });
 
+  const deleteRollMutation = useMutation({
+    mutationFn: () => deleteFilmRoll(id as string),
+    onSuccess: async () => {
+      setConfirmDeleteRoll(false);
+      snackbar.showMessage('Film roll deleted', 'info');
+      await queryClient.invalidateQueries({queryKey: ['film-rolls']});
+      navigate('/film-rolls');
+    },
+    onError: () => snackbar.showMessage('Could not delete film roll', 'error')
+  });
+
   if (isLoading) {
     return <Typography>Loading film roll...</Typography>;
   }
@@ -119,6 +132,9 @@ function FilmRollDetailPage() {
             color={film.isDeveloped ? 'success' : 'primary'}
           >
             {film.isDeveloped ? 'Update Development' : 'Mark as Developed'}
+          </Button>
+          <Button color="error" variant="outlined" onClick={() => setConfirmDeleteRoll(true)}>
+            Delete Roll
           </Button>
         </Stack>
       </Stack>
@@ -236,6 +252,15 @@ function FilmRollDetailPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmDeleteRoll}
+        title="Delete this film roll?"
+        description="This will permanently remove the roll and its development data."
+        confirmLabel="Delete"
+        onClose={() => setConfirmDeleteRoll(false)}
+        onConfirm={() => deleteRollMutation.mutate()}
+      />
 
       <ConfirmDialog
         open={confirmDeleteDevelopment}

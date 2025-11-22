@@ -367,16 +367,20 @@ function FilmRollListPage() {
                 <PrintIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <IconButton
-              color="error"
-              aria-label="Delete"
-              onClick={(event) => {
-                event.stopPropagation();
-                setSelectedForDelete(row);
-              }}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
+            <Tooltip title="Delete roll">
+              <span>
+                <IconButton
+                  color="error"
+                  aria-label="Delete"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedForDelete(row);
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
           </Stack>
         )
       }
