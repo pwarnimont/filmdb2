@@ -1,18 +1,13 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import type {ReactNode} from 'react';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
   Chip,
   Dialog,
   DialogContent,
   DialogTitle,
   Divider,
   Drawer,
-  Grid,
   IconButton,
   MenuItem,
   Paper,
@@ -23,7 +18,6 @@ import {
 } from '@mui/material';
 import {alpha, useTheme} from '@mui/material/styles';
 import {DataGrid, GridColDef, GridPaginationModel} from '@mui/x-data-grid';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCameraOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import CameraRollIcon from '@mui/icons-material/CameraRoll';
 import MovieFilterIcon from '@mui/icons-material/MovieFilterOutlined';
@@ -61,7 +55,6 @@ function CameraListPage() {
   const [formState, setFormState] = useState<{mode: 'create' | 'edit'; camera?: Camera | null} | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Camera | null>(null);
   const [drawerCameraId, setDrawerCameraId] = useState<string | null>(null);
-  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
 
   const filters = useMemo(
     () => ({
@@ -85,12 +78,6 @@ function CameraListPage() {
     staleTime: 1000 * 60 * 5
   });
 
-  const {data: selectedCameraData} = useQuery<Camera | null>({
-    queryKey: ['camera', selectedCameraId],
-    queryFn: () => (selectedCameraId ? getCamera(selectedCameraId) : Promise.resolve(null)),
-    enabled: !!selectedCameraId
-  });
-
   const {data: drawerCameraData} = useQuery<Camera | null>({
     queryKey: ['camera', drawerCameraId],
     queryFn: () => (drawerCameraId ? getCamera(drawerCameraId) : Promise.resolve(null)),
@@ -105,10 +92,6 @@ function CameraListPage() {
       setDrawerCameraId(null);
     }
   }, [searchParams, drawerCameraId]);
-
-  const selectedCameraDetail =
-    selectedCameraData ??
-    (selectedCameraId ? data?.items.find((camera) => camera.id === selectedCameraId) ?? null : null);
 
   const drawerCamera =
     drawerCameraData ??
@@ -164,7 +147,6 @@ function CameraListPage() {
       snackbar.showMessage('Camera deleted', 'info');
       setDeleteTarget(null);
       setDrawerCameraId(null);
-      setSelectedCameraId(null);
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.delete('cameraId');
@@ -205,24 +187,6 @@ function CameraListPage() {
       return next;
     });
   }, [setSearchParams]);
-
-  const handleOpenFullscreen = useCallback(
-    (camera: Camera) => {
-      queryClient.setQueryData(['camera', camera.id], camera);
-      setSelectedCameraId(camera.id);
-      setDrawerCameraId(null);
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.delete('cameraId');
-        return next;
-      });
-    },
-    [queryClient, setSearchParams]
-  );
-
-  const handleCloseDetails = useCallback(() => {
-    setSelectedCameraId(null);
-  }, []);
 
   const columns = useMemo<GridColDef<Camera>[]>(
     () => [
@@ -323,7 +287,7 @@ function CameraListPage() {
                   size="small"
                   onClick={(event) => {
                     event.stopPropagation();
-                    handleOpenFullscreen(row);
+                    navigate(`/cameras/${row.id}`);
                   }}
                 >
                   <VisibilityIcon fontSize="small" />
@@ -361,7 +325,7 @@ function CameraListPage() {
         )
       }
     ],
-    [handleOpenFullscreen, navigate, setFormState, setDeleteTarget]
+    [navigate, setFormState, setDeleteTarget]
   );
 
   const statsChips = Object.entries(stats.filmTypeMap).map(([type, count]) => `${type.toUpperCase()} ×${count}`);
@@ -631,37 +595,6 @@ function CameraListPage() {
         </Stack>
       </Drawer>
 
-      <Dialog fullScreen open={!!selectedCameraId} onClose={handleCloseDetails}>
-        {selectedCameraDetail ? (
-          <CameraDetailsView
-            camera={selectedCameraDetail}
-            onClose={handleCloseDetails}
-            onEdit={() => {
-              handleCloseDetails();
-              setFormState({mode: 'edit', camera: selectedCameraDetail});
-            }}
-            onDelete={() => {
-              handleCloseDetails();
-              setDeleteTarget(selectedCameraDetail);
-            }}
-            onCreateRoll={() => {
-              handleCloseDetails();
-              navigate('/film-rolls/new');
-            }}
-            onSelectRoll={(rollId) => {
-              handleCloseDetails();
-              navigate(`/film-rolls/${rollId}`);
-            }}
-          />
-        ) : (
-          <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', p: 4}}>
-            <Typography variant="body2" color="text.secondary">
-              Loading camera details...
-            </Typography>
-          </Box>
-        )}
-      </Dialog>
-
       <Dialog open={!!formState} onClose={() => setFormState(null)} maxWidth="sm" fullWidth>
         <DialogTitle>{formState?.mode === 'create' ? 'Add Camera' : 'Edit Camera'}</DialogTitle>
         <DialogContent>
@@ -692,181 +625,6 @@ function CameraListPage() {
         }}
       />
     </Stack>
-  );
-}
-
-function CameraDetailsView({
-  camera,
-  onClose,
-  onEdit,
-  onDelete,
-  onCreateRoll,
-  onSelectRoll
-}: {
-  camera: Camera;
-  onClose: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  onCreateRoll: () => void;
-  onSelectRoll: (filmRollId: string) => void;
-}) {
-  const formatDate = (value: string | null) => (value ? new Date(value).toLocaleDateString() : '—');
-
-  return (
-    <Box
-      sx={{
-        height: '100%',
-        overflowY: 'auto',
-        bgcolor: 'background.default',
-        display: 'flex',
-        justifyContent: 'center'
-      }}
-    >
-      <Stack spacing={3} sx={{p: {xs: 2, md: 4}, pb: 6, width: '100%', maxWidth: 1280}}>
-        <Stack
-          direction={{xs: 'column', sm: 'row'}}
-          spacing={2}
-          justifyContent="space-between"
-          alignItems={{xs: 'flex-start', sm: 'center'}}
-        >
-          <Typography variant="h4">
-            {camera.manufacturer} {camera.model}
-          </Typography>
-          <Stack direction={{xs: 'column', sm: 'row'}} spacing={1} sx={{width: {xs: '100%', sm: 'auto'}}}>
-            <Button variant="outlined" startIcon={<EditIcon />} onClick={onEdit} sx={{width: {xs: '100%', sm: 'auto'}}}>
-              Edit Camera
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={onCreateRoll}
-              sx={{width: {xs: '100%', sm: 'auto'}}}
-            >
-              Log Film Roll
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={onDelete}
-              sx={{width: {xs: '100%', sm: 'auto'}}}
-            >
-              Delete
-            </Button>
-            <Button startIcon={<CloseIcon />} onClick={onClose} sx={{width: {xs: '100%', sm: 'auto'}}}>
-              Close
-            </Button>
-          </Stack>
-        </Stack>
-
-        <Card>
-          <CardHeader
-            title="Details"
-            subheader={`Added ${formatDate(camera.createdAt)}`}
-            action={<PhotoCameraIcon color="primary" fontSize="large" />}
-          />
-          <CardContent>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <InfoRow label="Manufacturer" value={camera.manufacturer} />
-                <InfoRow label="Model" value={camera.model} />
-                <InfoRow label="Film Type" value={camera.filmType.toUpperCase()} />
-                <InfoRow label="Linked Rolls" value={camera.linkedFilmRollsCount} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <InfoRow label="Release Date" value={formatDate(camera.releaseDate)} />
-                <InfoRow label="Purchase Date" value={formatDate(camera.purchaseDate)} />
-                <InfoRow label="Last Updated" value={formatDate(camera.updatedAt)} />
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader title="Lenses" subheader={`${camera.lenses.length} saved`} />
-          <CardContent>
-            {camera.lenses.length ? (
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {camera.lenses.map((lens) => (
-                  <Chip key={lens} label={lens} variant="outlined" color="secondary" />
-                ))}
-              </Stack>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No lenses recorded for this camera.
-              </Typography>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader
-            title="Linked Film Rolls"
-            subheader={
-              camera.linkedFilmRolls.length
-                ? `${camera.linkedFilmRolls.length} linked`
-                : 'No rolls linked yet'
-            }
-            action={<CameraRollIcon color="primary" />}
-          />
-          <CardContent>
-            {camera.linkedFilmRolls.length ? (
-              <Stack spacing={1.5} divider={<Divider flexItem />}>
-                {camera.linkedFilmRolls.map((roll) => (
-                  <Stack
-                    key={roll.id}
-                    direction={{xs: 'column', sm: 'row'}}
-                    justifyContent="space-between"
-                    spacing={1}
-                    alignItems={{sm: 'center'}}
-                  >
-                    <Stack spacing={0.25}>
-                      <Typography variant="subtitle2">{roll.filmName}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {roll.filmId} • {formatDate(roll.dateShot)}
-                      </Typography>
-                    </Stack>
-                    <Button size="small" onClick={() => onSelectRoll(roll.id)}>
-                      View Roll
-                    </Button>
-                  </Stack>
-                ))}
-              </Stack>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                Link rolls when logging film to keep your collection organized.
-              </Typography>
-            )}
-          </CardContent>
-        </Card>
-
-        {camera.notes && (
-          <Card>
-            <CardHeader title="Notes" />
-            <CardContent>
-              <Typography variant="body2">{camera.notes}</Typography>
-            </CardContent>
-          </Card>
-        )}
-      </Stack>
-    </Box>
-  );
-}
-
-function InfoRow({label, value}: {label: string; value: ReactNode}) {
-  return (
-    <Box sx={{display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5}}>
-      <Typography variant="body2" color="text.secondary">
-        {label}
-      </Typography>
-      {typeof value === 'string' || typeof value === 'number' ? (
-        <Typography variant="body2" fontWeight={500}>
-          {value}
-        </Typography>
-      ) : (
-        value
-      )}
-    </Box>
   );
 }
 

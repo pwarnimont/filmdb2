@@ -12,6 +12,7 @@ import PrintListPage from './pages/PrintListPage';
 import PrintFormPage from './pages/PrintFormPage';
 import PrintDetailPage from './pages/PrintDetailPage';
 import CameraListPage from './pages/CameraListPage';
+import CameraDetailPage from './pages/CameraDetailPage';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/film-rolls/:id" element={<FilmRollDetailPage />} />
           <Route path="/film-rolls/:id/edit" element={<FilmRollFormPage mode="edit" />} />
           <Route path="/cameras" element={<CameraListPage />} />
+          <Route path="/cameras/:id" element={<CameraDetailPage />} />
           <Route path="/prints" element={<PrintListPage />} />
           <Route path="/prints/new" element={<PrintFormPage mode="create" />} />
           <Route path="/prints/:id" element={<PrintDetailPage />} />
